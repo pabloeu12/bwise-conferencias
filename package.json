@@ -1,0 +1,13 @@
+{
+  "name": "bwise-conferencias-hub",
+  "version": "1.0.0",
+  "description": "Hub Unificado de Conferências - Bwise",
+  "scripts": {
+    "dev": "concurrently \"uvicorn app:app --reload --port 8000\" \"cd frontend && npm run dev\"",
+    "backend": "uvicorn app:app --reload --port 8000",
+    "frontend": "cd frontend && npm run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  }
+}
