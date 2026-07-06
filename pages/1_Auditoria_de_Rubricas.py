@@ -20,7 +20,7 @@ st.set_page_config(
 
 # Renderiza o cabeçalho padronizado (que já injeta o CSS global)
 renderizar_cabecalho("CONFERÊNCIA<br>DE RUBRICAS")
-renderizar_navegacao_lateral()
+renderizar_navegacao_lateral("Auditoria de Rubricas")
 
 # -----------------------------------------------------------------------------
 # MENU LATERAL (SIDEBAR)

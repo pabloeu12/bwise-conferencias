@@ -21,7 +21,7 @@ st.set_page_config(
 
 # Renderiza o cabeçalho padronizado global
 renderizar_cabecalho("CONFERÊNCIA<br>ADIANTAMENTO SALARIAL")
-renderizar_navegacao_lateral()
+renderizar_navegacao_lateral("Adiantamento Salarial")
 
 # -----------------------------------------------------------------------------
 # MENU LATERAL (SIDEBAR)

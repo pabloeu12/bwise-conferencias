@@ -22,7 +22,7 @@ st.set_page_config(
 
 # Renderiza o cabeçalho padronizado global
 renderizar_cabecalho("CONFERÊNCIA<br>RECIBO DE FÉRIAS")
-renderizar_navegacao_lateral()
+renderizar_navegacao_lateral("Conferencia de Férias")
 
 # -----------------------------------------------------------------------------
 # MENU LATERAL (SIDEBAR) E INSTRUÇÕES

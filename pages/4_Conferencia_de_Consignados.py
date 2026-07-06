@@ -17,7 +17,7 @@ st.set_page_config(
 )
 
 renderizar_cabecalho("CONFERÊNCIA<br>DE CONSIGNADOS")
-renderizar_navegacao_lateral()
+renderizar_navegacao_lateral("Conferencia de Consignados")
 
 st.sidebar.markdown('### <span class="subtitulo">📁 Importação de Dados</span>', unsafe_allow_html=True)
 file_emprega = st.sidebar.file_uploader("1. Emprega Brasil", type=["xlsx", "xls", "csv"])

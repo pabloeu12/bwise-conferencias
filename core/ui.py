@@ -7,11 +7,12 @@ Componentes visuais e injeção de CSS Premium (Estilo SaaS).
 import os
 import streamlit as st
 
-MODULOS_APP = [
-    ("pages/1_Auditoria_de_Rubricas.py", "Auditoria de Rubricas"),
-    ("pages/2_Adiantamento_Salarial.py", "Adiantamento Salarial"),
-    ("pages/3_Conferencia_de_Ferias.py", "Conferencia de Férias"),
-    ("pages/4_Conferencia_de_Consignados.py", "Conferencia de Consignados"),
+PAGINAS_APP = [
+    ("Início", "Inicio.py"),
+    ("Auditoria de Rubricas", "pages/1_Auditoria_de_Rubricas.py"),
+    ("Adiantamento Salarial", "pages/2_Adiantamento_Salarial.py"),
+    ("Conferencia de Férias", "pages/3_Conferencia_de_Ferias.py"),
+    ("Conferencia de Consignados", "pages/4_Conferencia_de_Consignados.py"),
 ]
 
 def injetar_css_global():
@@ -138,10 +139,11 @@ def injetar_css_global():
             background-color: #FFFFFF;
             border-right: 1px solid #E2E8F0;
         }
-        section[data-testid="stSidebar"] [data-testid="stPageLink"] a {
-            border-radius: 8px;
-            padding: 0.45rem 0.65rem;
-            font-weight: 600;
+        section[data-testid="stSidebar"] .stButton > button {
+            justify-content: flex-start;
+            text-align: left;
+            box-shadow: none;
+            margin-bottom: 0.25rem;
         }
         </style>
         """,
@@ -194,6 +196,18 @@ def renderizar_cabecalho(titulo_html: str):
             
     st.markdown('</div>', unsafe_allow_html=True)
 
-def renderizar_navegacao_lateral():
-    """Mantém compatibilidade; a navegação principal é a nativa do Streamlit."""
-    return None
+def renderizar_navegacao_lateral(pagina_atual: str):
+    """Renderiza o menu lateral fixo dos módulos."""
+    with st.sidebar:
+        st.markdown("### Módulos")
+        for rotulo, caminho in PAGINAS_APP:
+            selecionado = rotulo == pagina_atual
+            if st.button(
+                rotulo,
+                key=f"nav_{caminho}",
+                type="primary" if selecionado else "secondary",
+                disabled=selecionado,
+                use_container_width=True,
+            ):
+                st.switch_page(caminho)
+        st.divider()

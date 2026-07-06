@@ -16,7 +16,7 @@ st.set_page_config(
 
 # Renderiza o novo cabeçalho executivo
 renderizar_cabecalho("PLATAFORMA DE AUDITORIA<br>E CONFERÊNCIA")
-renderizar_navegacao_lateral()
+renderizar_navegacao_lateral("Início")
 
 # Texto de boas-vindas com design limpo
 st.markdown(
@@ -53,6 +53,8 @@ with col1:
         """,
         unsafe_allow_html=True,
     )
+    if st.button("Abrir", key="abrir_rubricas", type="primary"):
+        st.switch_page("pages/1_Auditoria_de_Rubricas.py")
 
 with col2:
     st.markdown(
@@ -70,6 +72,8 @@ with col2:
         """,
         unsafe_allow_html=True,
     )
+    if st.button("Abrir", key="abrir_adiantamento", type="primary"):
+        st.switch_page("pages/2_Adiantamento_Salarial.py")
 
 with col3:
     st.markdown(
@@ -87,6 +91,8 @@ with col3:
         """,
         unsafe_allow_html=True,
     )
+    if st.button("Abrir", key="abrir_ferias", type="primary"):
+        st.switch_page("pages/3_Conferencia_de_Ferias.py")
 
 with col4:
     st.markdown(
@@ -104,6 +110,8 @@ with col4:
         """,
         unsafe_allow_html=True,
     )
+    if st.button("Abrir", key="abrir_consignados", type="primary"):
+        st.switch_page("pages/4_Conferencia_de_Consignados.py")
 
 # ── Rodapé Minimalista ────────────────────────────────────────────────────────
 st.markdown(
