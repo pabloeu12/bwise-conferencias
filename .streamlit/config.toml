@@ -9,5 +9,5 @@ font = "sans serif"
 [client]
 # Remove o menu de hambúrguer do topo
 toolbarMode = "minimal"
-# Usa a navegação lateral customizada definida em core/ui.py
-showSidebarNavigation = false
+# Mantém a navegação lateral nativa do Streamlit com recolher/expandir
+showSidebarNavigation = true

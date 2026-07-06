@@ -19,10 +19,10 @@ def injetar_css_global():
     st.markdown(
         """
         <style>
-        /* 1. Esconder elementos padrões do Streamlit */
+        /* 1. Esconder elementos padrões do Streamlit sem remover o controle da sidebar */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
-        header {visibility: hidden;}
+        [data-testid="stToolbar"] {visibility: hidden;}
 
         /* 2. Fundo geral e ajustes de espaçamento */
         .stApp {
@@ -195,10 +195,5 @@ def renderizar_cabecalho(titulo_html: str):
     st.markdown('</div>', unsafe_allow_html=True)
 
 def renderizar_navegacao_lateral():
-    """Renderiza links fixos para todos os módulos do app."""
-    with st.sidebar:
-        st.markdown("### Navegação")
-        st.page_link("Inicio.py", label="Início")
-        for caminho, rotulo in MODULOS_APP:
-            st.page_link(caminho, label=rotulo)
-        st.divider()
+    """Mantém compatibilidade; a navegação principal é a nativa do Streamlit."""
+    return None
