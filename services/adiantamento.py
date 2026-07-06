@@ -27,6 +27,21 @@ COLUNAS_SAIDA = [
     "Status", "Motivo / Erros"
 ]
 
+def nome_arquivo(arquivo) -> str:
+    return str(getattr(arquivo, "name", getattr(arquivo, "filename", ""))).lower()
+
+def reposicionar(arquivo):
+    try:
+        arquivo.seek(0)
+    except Exception:
+        pass
+
+def ler_planilha(arquivo, header=None) -> pd.DataFrame:
+    reposicionar(arquivo)
+    if nome_arquivo(arquivo).endswith(".csv"):
+        return pd.read_csv(arquivo, header=header, sep=None, engine="python")
+    return pd.read_excel(arquivo, header=header)
+
 def verificar_optante(val) -> bool:
     v = str(val).strip().lower()
     if v in ['0', '0.0', 'não', 'nao', 'n', 'false']:
@@ -65,9 +80,9 @@ def calcular_dias_ferias_no_mes(mes: int, ano: int, data_ini, data_fim) -> int:
     return max(0, dias)
 
 def executar_conferencia_adiantamento(file_eventos, file_ativos, file_ferias) -> tuple[list[dict], dict]:
-    df_ev_raw = pd.read_excel(file_eventos, header=None) if not str(getattr(file_eventos, 'filename', '')).endswith('.csv') else pd.read_csv(file_eventos, header=None, sep=None, engine='python')
-    df_at_raw = pd.read_excel(file_ativos, header=None) if not str(getattr(file_ativos, 'filename', '')).endswith('.csv') else pd.read_csv(file_ativos, header=None, sep=None, engine='python')
-    df_fe_raw = pd.read_excel(file_ferias, header=None) if not str(getattr(file_ferias, 'filename', '')).endswith('.csv') else pd.read_csv(file_ferias, header=None, sep=None, engine='python')
+    df_ev_raw = ler_planilha(file_eventos, header=None)
+    df_at_raw = ler_planilha(file_ativos, header=None)
+    df_fe_raw = ler_planilha(file_ferias, header=None)
 
     df_ev = df_ev_raw.iloc[2:, [1, 2, 11, 12, 13, 14, 16]].copy()
     df_ev.columns = ['Matricula', 'Nome_Ev', 'Mes', 'Ano', 'Cod_Evento', 'Nome_Evento', 'Valor_Provento']
@@ -141,7 +156,7 @@ def executar_conferencia_adiantamento(file_eventos, file_ativos, file_ferias) ->
         val_atu = row['Valor_Mes_Atual']
         data_adm = row['Data_Admissao']
         
-        is_aprendiz = "Aprendiz (Lei 10.097/2000)" in category if 'category' in locals() else "Aprendiz (Lei 10.097/2000)" in categoria
+        is_aprendiz = "Aprendiz (Lei 10.097/2000)" in categoria
         optante = verificar_optante(row['Opta_Adiantamento'])
         direito_ant = tem_direito_adiantamento(mes_anterior, ano_ant, data_adm)
         direito_atu = tem_direito_adiantamento(mes_atual, ano_atu, data_adm)
@@ -318,3 +333,45 @@ def gerar_excel_adiantamento(resultados: list[dict], meta: dict) -> bytes:
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()
+
+
+def processar_dados(file_eventos, file_ativos, file_ferias):
+    """Compatibilidade com a interface Streamlit original do módulo."""
+    resultados, meta = executar_conferencia_adiantamento(file_eventos, file_ativos, file_ferias)
+    df = pd.DataFrame(resultados).rename(columns={
+        "Matrícula": "Matricula",
+        "Funcionário": "Nome",
+        "Salário Base": "Salario",
+        "Adiantamento Mês Anterior": f"Adiantamento (Mês {meta['mes_ant']})",
+        "Adiantamento Mês Atual": f"Adiantamento (Mês {meta['mes_atu']})",
+    })
+    return df, meta["mes_ant"], meta["mes_atu"], meta["tot_ant"], meta["tot_atu"]
+
+
+def gerar_excel_formatado(df: pd.DataFrame, mes_ant: int, mes_atu: int) -> bytes:
+    """Gera Excel a partir do DataFrame filtrado exibido no Streamlit."""
+    df_export = df.rename(columns={
+        "Matricula": "Matrícula",
+        "Nome": "Funcionário",
+        "Salario": "Salário Base",
+        f"Adiantamento (Mês {mes_ant})": "Adiantamento Mês Anterior",
+        f"Adiantamento (Mês {mes_atu})": "Adiantamento Mês Atual",
+    })
+
+    meta = {
+        "mes_ant": mes_ant,
+        "mes_atu": mes_atu,
+        "tot_ant": float(df_export["Adiantamento Mês Anterior"].sum()) if "Adiantamento Mês Anterior" in df_export else 0.0,
+        "tot_atu": float(df_export["Adiantamento Mês Atual"].sum()) if "Adiantamento Mês Atual" in df_export else 0.0,
+        "total_ativos": len(df_export),
+        "total_corretos": int(df_export["Status"].str.contains("Certo", na=False).sum()) if "Status" in df_export else 0,
+        "total_errados": int((df_export["Status"] == "Errado").sum()) if "Status" in df_export else 0,
+        "total_isentos": int(df_export["Status"].isin([
+            "Funcionário Novo",
+            "Sem adiantamento (opcional)",
+            "Não tem direito (admitido após dia 6)",
+        ]).sum()) if "Status" in df_export else 0,
+    }
+
+    registros = df_export.to_dict("records")
+    return gerar_excel_adiantamento(registros, meta)

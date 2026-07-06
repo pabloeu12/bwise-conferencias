@@ -7,6 +7,13 @@ Componentes visuais e injeção de CSS Premium (Estilo SaaS).
 import os
 import streamlit as st
 
+MODULOS_APP = [
+    ("pages/1_Auditoria_de_Rubricas.py", "Auditoria de Rubricas"),
+    ("pages/2_Adiantamento_Salarial.py", "Adiantamento Salarial"),
+    ("pages/3_Conferencia_de_Ferias.py", "Conferencia de Férias"),
+    ("pages/4_Conferencia_de_Consignados.py", "Conferencia de Consignados"),
+]
+
 def injetar_css_global():
     """Injeta estilos avançados para transformar o Streamlit em um SaaS moderno."""
     st.markdown(
@@ -125,6 +132,17 @@ def injetar_css_global():
             font-size: 1.1rem;
             margin-bottom: 10px;
         }
+
+        /* 6. Navegação lateral unificada */
+        section[data-testid="stSidebar"] {
+            background-color: #FFFFFF;
+            border-right: 1px solid #E2E8F0;
+        }
+        section[data-testid="stSidebar"] [data-testid="stPageLink"] a {
+            border-radius: 8px;
+            padding: 0.45rem 0.65rem;
+            font-weight: 600;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -175,3 +193,12 @@ def renderizar_cabecalho(titulo_html: str):
             st.markdown("<b>MAÇANEIRO</b>", unsafe_allow_html=True)
             
     st.markdown('</div>', unsafe_allow_html=True)
+
+def renderizar_navegacao_lateral():
+    """Renderiza links fixos para todos os módulos do app."""
+    with st.sidebar:
+        st.markdown("### Navegação")
+        st.page_link("Inicio.py", label="Início")
+        for caminho, rotulo in MODULOS_APP:
+            st.page_link(caminho, label=rotulo)
+        st.divider()

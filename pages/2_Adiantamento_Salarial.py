@@ -9,7 +9,7 @@ import pandas as pd
 import altair as alt
 
 # Importando do nosso core e services
-from core.ui import renderizar_cabecalho
+from core.ui import renderizar_cabecalho, renderizar_navegacao_lateral
 from core.utils import formatar_moeda_br
 from services.adiantamento import processar_dados, gerar_excel_formatado
 
@@ -21,11 +21,12 @@ st.set_page_config(
 
 # Renderiza o cabeçalho padronizado global
 renderizar_cabecalho("CONFERÊNCIA<br>ADIANTAMENTO SALARIAL")
+renderizar_navegacao_lateral()
 
 # -----------------------------------------------------------------------------
 # MENU LATERAL (SIDEBAR)
 # -----------------------------------------------------------------------------
-st.sidebar.header("📁 Importação de Dados")
+st.sidebar.markdown('### <span class="subtitulo">📁 Importação de Dados</span>', unsafe_allow_html=True)
 file_eventos = st.sidebar.file_uploader("1. Upload: LISTA DE EVENTOS", type=["xlsx", "csv"])
 file_ativos  = st.sidebar.file_uploader("2. Upload: LISTA DE ATIVOS", type=["xlsx", "csv"])
 file_ferias  = st.sidebar.file_uploader("3. Upload: LISTA DE FÉRIAS", type=["xlsx", "csv"])

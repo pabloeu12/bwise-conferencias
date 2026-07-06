@@ -5,6 +5,7 @@ Lógica de leitura e comparação das planilhas de Rubricas.
 """
 
 import re
+import unicodedata
 import openpyxl
 import pandas as pd
 from io import BytesIO
@@ -34,6 +35,22 @@ COLUNAS_SAIDA = [
 def extrair_codigos(nome_coluna: str) -> list[str]:
     """Extrai todos os códigos numéricos de um nome de coluna."""
     return re.findall(r"\((\d+)\)", limpar_str(nome_coluna))
+
+def normalizar_cabecalho(valor) -> str:
+    texto = limpar_str(valor).lower()
+    texto = unicodedata.normalize("NFKD", texto)
+    texto = "".join(ch for ch in texto if not unicodedata.combining(ch))
+    return re.sub(r"[^a-z0-9]+", " ", texto).strip()
+
+def normalizar_codigo_evento(valor) -> str:
+    if isinstance(valor, int):
+        return str(valor)
+    if isinstance(valor, float) and valor.is_integer():
+        return str(int(valor))
+
+    texto = limpar_str(valor)
+    match = re.fullmatch(r"(\d+)(?:[,.]0+)?", texto)
+    return match.group(1) if match else texto
 
 def comparar(val_lanc, ref, prov, desc) -> tuple[str, str]:
     v = moeda_para_float(val_lanc)
@@ -103,17 +120,18 @@ def ler_sistema(arquivo) -> dict:
     if not dados:
         raise ValueError("Planilha do sistema está vazia.")
 
+    inicio_dados, idxs = _mapear_colunas_sistema(dados)
     sistema = {}
-    for linha in dados[1:]:
-        if not linha or linha[0] is None:
+    for linha in dados[inicio_dados:]:
+        if not linha or idxs["mat"] >= len(linha) or linha[idxs["mat"]] is None:
             continue
         try:
-            mat  = int(float(str(linha[0]).strip()))
-            cod  = str(linha[2]).strip() if linha[2] is not None else ""
-            nome = limpar_str(linha[3])
-            ref  = moeda_para_float(linha[4])
-            prov = moeda_para_float(linha[5])
-            desc = moeda_para_float(linha[6])
+            mat  = int(float(str(linha[idxs["mat"]]).strip()))
+            cod  = normalizar_codigo_evento(linha[idxs["cod"]] if idxs["cod"] < len(linha) else None)
+            nome = limpar_str(linha[idxs["nome"]]) if idxs["nome"] < len(linha) else ""
+            ref  = moeda_para_float(linha[idxs["ref"]] if idxs["ref"] < len(linha) else None)
+            prov = moeda_para_float(linha[idxs["prov"]] if idxs["prov"] < len(linha) else None)
+            desc = moeda_para_float(linha[idxs["desc"]] if idxs["desc"] < len(linha) else None)
         except (ValueError, IndexError, TypeError):
             continue
         if not cod:
@@ -127,6 +145,36 @@ def ler_sistema(arquivo) -> dict:
             sistema[mat][cod] = {"nome": nome, "ref": ref, "prov": prov, "desc": desc}
 
     return sistema
+
+def _mapear_colunas_sistema(dados) -> tuple[int, dict]:
+    aliases = {
+        "mat":  ("matricula",),
+        "cod":  ("cod evento", "codigo evento", "cod evento do recibo", "codigo evento do recibo"),
+        "nome": ("evento", "nome evento", "nome do evento"),
+        "ref":  ("referencia",),
+        "prov": ("valor provento", "provento", "provento sistema"),
+        "desc": ("valor desconto", "desconto", "desconto sistema"),
+    }
+
+    for pos, cabecalho in enumerate(dados):
+        normalizados = {
+            normalizar_cabecalho(nome): idx
+            for idx, nome in enumerate(cabecalho)
+            if limpar_str(nome)
+        }
+        idxs = {}
+        for campo, opcoes in aliases.items():
+            idx = next((normalizados[opcao] for opcao in opcoes if opcao in normalizados), None)
+            if idx is None:
+                break
+            idxs[campo] = idx
+        else:
+            return pos + 1, idxs
+
+    if dados and len(dados[0]) >= 7:
+        return 1, {"mat": 0, "cod": 2, "nome": 3, "ref": 4, "prov": 5, "desc": 6}
+
+    raise ValueError("Não foi possível identificar as colunas da planilha do sistema.")
 
 # ════════════════════════════════════════════════════════════
 # COMPARAÇÃO PRINCIPAL

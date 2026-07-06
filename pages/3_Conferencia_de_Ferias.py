@@ -8,7 +8,7 @@ import streamlit as st
 from dateutil.relativedelta import relativedelta
 
 # Importando do nosso core e services
-from core.ui import renderizar_cabecalho
+from core.ui import renderizar_cabecalho, renderizar_navegacao_lateral
 from services.ferias import (
     extrair_dados_pdf, carregar_historico, carregar_eventos, 
     obter_salario_epoca, arredondar, EVENTOS_MEDIAS
@@ -22,11 +22,12 @@ st.set_page_config(
 
 # Renderiza o cabeçalho padronizado global
 renderizar_cabecalho("CONFERÊNCIA<br>RECIBO DE FÉRIAS")
+renderizar_navegacao_lateral()
 
 # -----------------------------------------------------------------------------
 # MENU LATERAL (SIDEBAR) E INSTRUÇÕES
 # -----------------------------------------------------------------------------
-st.sidebar.header("📁 Importação de Dados")
+st.sidebar.markdown('### <span class="subtitulo">📁 Importação de Dados</span>', unsafe_allow_html=True)
 pdf_file = st.sidebar.file_uploader("1. RECIBO FÉRIAS (PDF)", type=['pdf'])
 eventos_file = st.sidebar.file_uploader("2. LISTA DE EVENTOS", type=['csv', 'xlsx', 'xls'])
 historico_file = st.sidebar.file_uploader("3. HISTÓRICO DE CARGOS", type=['csv', 'xlsx', 'xls'])

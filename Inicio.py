@@ -5,7 +5,7 @@ Dashboard Executivo (Ponto de entrada SaaS)
 """
 
 import streamlit as st
-from core.ui import renderizar_cabecalho, injetar_css_global
+from core.ui import renderizar_cabecalho, renderizar_navegacao_lateral
 
 st.set_page_config(
     page_title="Plataforma de Auditoria - Bwise",
@@ -16,6 +16,7 @@ st.set_page_config(
 
 # Renderiza o novo cabeçalho executivo
 renderizar_cabecalho("PLATAFORMA DE AUDITORIA<br>E CONFERÊNCIA")
+renderizar_navegacao_lateral()
 
 # Texto de boas-vindas com design limpo
 st.markdown(
@@ -34,7 +35,7 @@ st.markdown(
 )
 
 # ── Cards Premium dos Módulos ──────────────────────────────────────────────────
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.markdown(
@@ -81,6 +82,23 @@ with col3:
             </div>
             <div class="saas-footer">
                 🚀 Requer: PDF, Histórico & Eventos
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with col4:
+    st.markdown(
+        """
+        <div class="saas-card">
+            <div class="saas-badge">MÓDULO DE INTELIGÊNCIA</div>
+            <div class="saas-title">💳 Conferencia de Consignados</div>
+            <div class="saas-desc">
+                Conferência dos descontos de empréstimos consignados. Cruza Emprega Brasil, recibos e eventos de pagamento para validar valores descontados e limite de 35%.
+            </div>
+            <div class="saas-footer">
+                🚀 Requer: Emprega Brasil, Recibos & Eventos
             </div>
         </div>
         """,

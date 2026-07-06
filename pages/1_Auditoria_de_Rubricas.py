@@ -9,7 +9,7 @@ import pandas as pd
 from io import BytesIO
 
 # Importando do nosso core e services
-from core.ui import renderizar_cabecalho
+from core.ui import renderizar_cabecalho, renderizar_navegacao_lateral
 from services.comparador import executar_comparacao, gerar_excel
 
 st.set_page_config(
@@ -20,6 +20,7 @@ st.set_page_config(
 
 # Renderiza o cabeçalho padronizado (que já injeta o CSS global)
 renderizar_cabecalho("CONFERÊNCIA<br>DE RUBRICAS")
+renderizar_navegacao_lateral()
 
 # -----------------------------------------------------------------------------
 # MENU LATERAL (SIDEBAR)

@@ -26,6 +26,24 @@ def parse_br_float(val):
         v_str = v_str.replace('.', '').replace(',', '.')
     return float(v_str)
 
+def nome_arquivo(arquivo) -> str:
+    return str(getattr(arquivo, "name", getattr(arquivo, "filename", ""))).lower()
+
+def reposicionar(arquivo):
+    try:
+        arquivo.seek(0)
+    except Exception:
+        pass
+
+def ler_tabela(arquivo, **kwargs) -> pd.DataFrame:
+    reposicionar(arquivo)
+    nome = nome_arquivo(arquivo)
+    if nome.endswith(".csv"):
+        return pd.read_csv(arquivo, sep=None, engine="python", **kwargs)
+    if nome.endswith(".xls"):
+        return pd.read_excel(arquivo, engine="xlrd", **kwargs)
+    return pd.read_excel(arquivo, engine="openpyxl", **kwargs)
+
 def obter_salario_epoca(df_hist, mes_evt, ano_evt):
     if df_hist is None or df_hist.empty: return None
     df_temp = df_hist.copy()
@@ -46,7 +64,7 @@ def obter_salario_epoca(df_hist, mes_evt, ano_evt):
 def extrair_dados_pdf(pdf_file) -> dict:
     dados = {'eventos': {}}
     with pdfplumber.open(pdf_file) as pdf:
-        texto = "".join([page.extract_text() + "\n" for page in pdf.pages])
+        texto = "".join([(page.extract_text() or "") + "\n" for page in pdf.pages])
         
     match_salario = re.search(r'Salário Contratual:[\s]*([\d\.,]+)', texto)
     if match_salario: dados['salario'] = float(match_salario.group(1).replace('.', '').replace(',', '.'))
@@ -55,6 +73,7 @@ def extrair_dados_pdf(pdf_file) -> dict:
     if match_periodo:
         dados['periodo_str'] = f"{match_periodo.group(1)} a {match_periodo.group(2)}"
         dados['inicio_aquisitivo'] = datetime.strptime(match_periodo.group(1), '%d/%m/%Y')
+        dados['fim_aquisitivo'] = datetime.strptime(match_periodo.group(2), '%d/%m/%Y')
         
     match_mat = re.search(r'Matrícula:[\s]*(\d+)', texto)
     if match_mat: dados['matricula'] = int(match_mat.group(1))
@@ -69,21 +88,27 @@ def extrair_dados_pdf(pdf_file) -> dict:
             
     return dados
 
+def carregar_historico(historico_file, matricula):
+    df_hist = ler_tabela(historico_file)
+    df_hist.columns = df_hist.columns.str.strip()
+    df_hist = df_hist[df_hist['Matrícula'] == matricula]
+    return df_hist[['Data de reajuste', 'Salário', 'Salário novo']].dropna()
+
+def carregar_eventos(eventos_file, matricula):
+    df_evt = ler_tabela(eventos_file, skiprows=1)
+    df_evt.columns = df_evt.columns.str.strip()
+    df_evt = df_evt[df_evt['Matrícula'] == matricula]
+    if 'Valor Provento' in df_evt.columns:
+        df_evt['Valor Provento'] = df_evt['Valor Provento'].apply(parse_br_float)
+    return df_evt
+
 def processar_auditoria_ferias(pdf_bytes, eventos_file, historico_file) -> dict:
     dados_pdf = extrair_dados_pdf(pdf_bytes)
     matricula = dados_pdf.get('matricula', 0)
     salario_atual = dados_pdf.get('salario', 0.0)
     
-    # Carregar planilhas de forma dinâmica
-    df_hist = pd.read_excel(historico_file) if not str(getattr(historico_file, 'filename', '')).endswith('.csv') else pd.read_csv(historico_file)
-    df_hist.columns = df_hist.columns.str.strip()
-    df_hist = df_hist[df_hist['Matrícula'] == matricula].dropna(subset=['Data de reajuste', 'Salário', 'Salário novo'])
-
-    df_evt = pd.read_excel(eventos_file, skiprows=1) if not str(getattr(eventos_file, 'filename', '')).endswith('.csv') else pd.read_csv(eventos_file, skiprows=1)
-    df_evt.columns = df_evt.columns.str.strip()
-    df_evt = df_evt[df_evt['Matrícula'] == matricula]
-    if 'Valor Provento' in df_evt.columns:
-        df_evt['Valor Provento'] = df_evt['Valor Provento'].apply(parse_br_float)
+    df_hist = carregar_historico(historico_file, matricula)
+    df_evt = carregar_eventos(eventos_file, matricula)
 
     # 1. Conferência Férias e Abono Base
     valor_dia = salario_atual / 30

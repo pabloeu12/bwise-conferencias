@@ -9,9 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
 # Importações dos serviços de auditoria
-from services.comparador import ejecutar_comparacao, gerar_excel
+from services.comparador import executar_comparacao, gerar_excel
 from services.adiantamento import executar_conferencia_adiantamento, gerar_excel_adiantamento
 from services.ferias import processar_auditoria_ferias
+from services.consignados import executar_conferencia_consignados, gerar_excel_consignados
 
 app = FastAPI(title="Motor Bwise")
 
@@ -23,6 +24,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+def arquivo_nomeado(upload: UploadFile):
+    """Preserva o nome original para os leitores CSV/XLS/XLSX dos serviços."""
+    upload.file.seek(0)
+    setattr(upload.file, "filename", upload.filename)
+    return upload.file
 
 @app.get("/")
 def home():
@@ -37,7 +44,7 @@ async def api_auditoria_rubricas(
     arquivo_sist: UploadFile = File(...)
 ):
     try:
-        resultados = ejecutar_comparacao(arquivo_lanc.file, arquivo_sist.file)
+        resultados = executar_comparacao(arquivo_nomeado(arquivo_lanc), arquivo_nomeado(arquivo_sist))
         if not resultados:
             raise HTTPException(status_code=400, detail="Nenhuma divergência ou dado foi processado.")
         
@@ -62,9 +69,9 @@ async def api_auditoria_adiantamento(
 ):
     try:
         resultados, meta = executar_conferencia_adiantamento(
-            arquivo_eventos.file, 
-            arquivo_ativos.file, 
-            arquivo_ferias.file
+            arquivo_nomeado(arquivo_eventos),
+            arquivo_nomeado(arquivo_ativos),
+            arquivo_nomeado(arquivo_ferias),
         )
         
         planilha_bytes = gerar_excel_adiantamento(resultados, meta)
@@ -88,10 +95,35 @@ async def api_auditoria_ferias(
 ):
     try:
         resultado = processar_auditoria_ferias(
-            pdf_ferias.file,
-            arquivo_eventos.file,
-            arquivo_historico.file
+            arquivo_nomeado(pdf_ferias),
+            arquivo_nomeado(arquivo_eventos),
+            arquivo_nomeado(arquivo_historico),
         )
         return resultado
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ════════════════════════════════════════════════════════════
+# ROTA: CONFERÊNCIA DE EMPRÉSTIMOS CONSIGNADOS
+# ════════════════════════════════════════════════════════════
+@app.post("/api/auditoria-consignados")
+async def api_auditoria_consignados(
+    arquivo_emprega: UploadFile = File(...),
+    arquivo_recibos: UploadFile = File(...),
+    arquivo_eventos: UploadFile = File(...),
+):
+    try:
+        resultados, meta = executar_conferencia_consignados(
+            arquivo_nomeado(arquivo_emprega),
+            arquivo_nomeado(arquivo_recibos),
+            arquivo_nomeado(arquivo_eventos),
+        )
+        planilha_bytes = gerar_excel_consignados(resultados, meta)
+
+        return Response(
+            content=planilha_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=Conferencia_Consignados.xlsx"},
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
