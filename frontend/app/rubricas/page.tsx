@@ -70,6 +70,9 @@ export default function RubricasPage() {
           <button onClick={() => router.push("/ferias")} className="w-full flex items-center gap-4 px-4 py-3 text-emerald-400 bg-emerald-400/5 hover:bg-emerald-400/20 rounded-r-full font-medium transition-colors text-left">
             <span>🏖️</span>{sidebarAberta && <span>Férias</span>}
           </button>
+          <button onClick={() => router.push("/consignados")} className="w-full flex items-center gap-4 px-4 py-3 text-emerald-400 bg-emerald-400/5 hover:bg-emerald-400/20 rounded-r-full font-medium transition-colors text-left">
+            <span>💰</span>{sidebarAberta && <span>Consignados</span>}
+          </button>
         </nav>
       </aside>
 
