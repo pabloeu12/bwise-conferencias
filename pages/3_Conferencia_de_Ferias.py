@@ -15,7 +15,8 @@ from services.ferias import (
 )
 
 st.set_page_config(
-    page_title="Conferência de Férias - Bwise & Maçaneiro", 
+    page_title="Conferência de Férias - Bwise & Maçaneiro",
+    page_icon="assets/logo bwise.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -27,13 +28,13 @@ renderizar_navegacao_lateral("Conferencia de Férias")
 # -----------------------------------------------------------------------------
 # MENU LATERAL (SIDEBAR) E INSTRUÇÕES
 # -----------------------------------------------------------------------------
-st.sidebar.markdown('### <span class="subtitulo">📁 Importação de Dados</span>', unsafe_allow_html=True)
+st.sidebar.markdown('### <span class="subtitulo">Importação de Dados</span>', unsafe_allow_html=True)
 pdf_file = st.sidebar.file_uploader("1. RECIBO FÉRIAS (PDF)", type=['pdf'])
 eventos_file = st.sidebar.file_uploader("2. LISTA DE EVENTOS", type=['csv', 'xlsx', 'xls'])
 historico_file = st.sidebar.file_uploader("3. HISTÓRICO DE CARGOS", type=['csv', 'xlsx', 'xls'])
 
 if not (pdf_file and eventos_file and historico_file):
-    with st.expander("📖 Como extrair os documentos do sistema (Passo a Passo)"):
+    with st.expander("Como extrair os documentos do sistema (Passo a Passo)"):
         st.markdown("""
         ### 1. RECIBO DE FÉRIAS (PDF)
         **Caminho:** `Férias` ➔ `Controle de Período Aquisitivo e Concessivo` ➔ `Impressão de Documentos...`
@@ -53,18 +54,22 @@ if not (pdf_file and eventos_file and historico_file):
         * **Situação do funcionário:** `Ativos`.
         * Salvar o arquivo.
         """)
-    st.info("👈 Por favor, anexe os TRÊS documentos no menu lateral esquerdo para iniciar a conferência.")
+    st.info("Por favor, anexe os TRÊS documentos no menu lateral esquerdo para iniciar a conferência.")
     st.stop()
 
 # -----------------------------------------------------------------------------
 # PROCESSAMENTO E RESULTADOS
 # -----------------------------------------------------------------------------
-with st.spinner("⚙️ Processando informações do PDF e calculando médias..."):
-    dados_pdf = extrair_dados_pdf(pdf_file)
+with st.spinner("Processando informações do PDF e calculando médias..."):
+    try:
+        dados_pdf = extrair_dados_pdf(pdf_file)
+    except Exception as e:
+        st.error(f"Não foi possível ler o PDF do recibo de férias: {e}")
+        st.stop()
     matricula = dados_pdf.get('matricula', 0)
     salario_atual = dados_pdf.get('salario', 0.0)
 
-st.markdown('### <span class="subtitulo">📋 Resumo Extraído</span>', unsafe_allow_html=True)
+st.markdown('### <span class="subtitulo">Resumo Extraído</span>', unsafe_allow_html=True)
 st.write(f"**Matrícula:** {matricula}")
 st.write(f"**Salário Contratual:** R$ {salario_atual:,.2f}")
 if 'inicio_aquisitivo' in dados_pdf:

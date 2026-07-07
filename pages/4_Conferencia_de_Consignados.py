@@ -12,6 +12,7 @@ from services.consignados import executar_conferencia_consignados, gerar_excel_c
 
 st.set_page_config(
     page_title="Conferencia de Consignados - Bwise & Maçaneiro",
+    page_icon="assets/logo bwise.png",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -19,13 +20,13 @@ st.set_page_config(
 renderizar_cabecalho("CONFERÊNCIA<br>DE CONSIGNADOS")
 renderizar_navegacao_lateral("Conferencia de Consignados")
 
-st.sidebar.markdown('### <span class="subtitulo">📁 Importação de Dados</span>', unsafe_allow_html=True)
+st.sidebar.markdown('### <span class="subtitulo">Importação de Dados</span>', unsafe_allow_html=True)
 file_emprega = st.sidebar.file_uploader("1. Emprega Brasil", type=["xlsx", "xls", "csv"])
 file_recibos = st.sidebar.file_uploader("2. Lista de Recibo de Pagamento", type=["xlsx", "xls", "csv"])
 file_eventos = st.sidebar.file_uploader("3. Lista de Eventos de Pagamento", type=["xlsx", "xls", "csv"])
 
 if not (file_emprega and file_recibos and file_eventos):
-    with st.expander("📖 Como extrair os documentos do sistema (Passo a Passo)"):
+    with st.expander("Como extrair os documentos do sistema (Passo a Passo)"):
         st.markdown("""
         ### 1. Emprega Brasil
         Espaço reservado para inclusão dos passos futuramente.
@@ -46,25 +47,25 @@ if not (file_emprega and file_recibos and file_eventos):
         * **Tipo de Recibo:** `1 Normal`.
         * Clique em **Filtrar** e salve o arquivo nos formatos **.CSV**, **.XLS** ou **.XLSX**.
         """)
-    st.info("👈 Por favor, anexe os TRÊS arquivos no menu lateral para iniciar a conferência.")
+    st.info("Por favor, anexe os TRÊS arquivos no menu lateral para iniciar a conferência.")
     st.stop()
 
 col_btn, _ = st.columns([1, 3])
 with col_btn:
-    processar = st.button("⚡ INICIAR CONFERÊNCIA", type="primary")
+    processar = st.button("INICIAR CONFERÊNCIA", type="primary")
 
 if processar:
-    with st.spinner("⚙️ Cruzando Emprega Brasil, recibos e eventos de pagamento..."):
+    with st.spinner("Cruzando Emprega Brasil, recibos e eventos de pagamento..."):
         try:
             resultados, meta = executar_conferencia_consignados(file_emprega, file_recibos, file_eventos)
         except Exception as exc:
-            st.error(f"❌ Erro ao processar os arquivos: {exc}")
+            st.error(f"Erro ao processar os arquivos: {exc}")
             st.stop()
 
     st.session_state["resultados_consignados"] = resultados
     st.session_state["meta_consignados"] = meta
     st.session_state["df_consignados"] = pd.DataFrame(resultados)
-    st.success(f"✅ Conferência concluída com sucesso! ({meta['total_funcionarios']} funcionários processados)")
+    st.success(f"Conferência concluída com sucesso! ({meta['total_funcionarios']} funcionários processados)")
 
 if "df_consignados" not in st.session_state:
     st.info("Clique em **INICIAR CONFERÊNCIA** para processar os arquivos anexados.")
@@ -75,7 +76,7 @@ meta = st.session_state["meta_consignados"]
 resultados = st.session_state["resultados_consignados"]
 
 st.markdown("<br>", unsafe_allow_html=True)
-st.markdown('### <span class="subtitulo">📊 Resumo Geral</span>', unsafe_allow_html=True)
+st.markdown('### <span class="subtitulo">Resumo Geral</span>', unsafe_allow_html=True)
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Funcionários Processados", meta["total_funcionarios"])
 m2.metric("Corretos", meta["total_corretos"])
@@ -83,7 +84,7 @@ m3.metric("Com Divergência", meta["total_errados"])
 m4.metric("Limites 35% Ultrapassados", meta["limites_ultrapassados"])
 
 st.markdown("---")
-st.markdown('### <span class="subtitulo">🔍 Filtros</span>', unsafe_allow_html=True)
+st.markdown('### <span class="subtitulo">Filtros</span>', unsafe_allow_html=True)
 fc1, fc2, fc3 = st.columns([1.2, 2, 2])
 
 with fc1:
@@ -129,11 +130,11 @@ st.dataframe(
 )
 
 st.markdown("<br>", unsafe_allow_html=True)
-st.markdown('### <span class="subtitulo">⬇️ Exportar Relatório</span>', unsafe_allow_html=True)
+st.markdown('### <span class="subtitulo">Exportar Relatório</span>', unsafe_allow_html=True)
 excel_bytes = gerar_excel_consignados(resultados, meta)
 
 st.download_button(
-    label="📥 Baixar Conferência de Consignados",
+    label="Baixar Conferência de Consignados",
     data=excel_bytes,
     file_name="Resultado_Conferencia_Consignados.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

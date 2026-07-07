@@ -6,14 +6,14 @@ Interface Visual do Módulo de Conferência de Rubricas.
 
 import streamlit as st
 import pandas as pd
-from io import BytesIO
 
 # Importando do nosso core e services
 from core.ui import renderizar_cabecalho, renderizar_navegacao_lateral
 from services.comparador import executar_comparacao, gerar_excel
 
 st.set_page_config(
-    page_title="Conferência de Rubricas - Bwise & Maçaneiro", 
+    page_title="Conferência de Rubricas - Bwise & Maçaneiro",
+    page_icon="assets/logo bwise.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -26,7 +26,7 @@ renderizar_navegacao_lateral("Auditoria de Rubricas")
 # MENU LATERAL (SIDEBAR)
 # -----------------------------------------------------------------------------
 with st.sidebar:
-    st.markdown('### <span class="subtitulo">📁 Importação de Dados</span>', unsafe_allow_html=True)
+    st.markdown('### <span class="subtitulo">Importação de Dados</span>', unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
     
     st.markdown("**1. Upload: PLANILHA DE LANÇAMENTOS**")
@@ -51,8 +51,8 @@ with st.sidebar:
 # TELA INICIAL (SEM ARQUIVOS) - PASSO A PASSO
 # -----------------------------------------------------------------------------
 if not arq_lanc or not arq_sist:
-    with st.expander("📖 Como extrair as planilhas do Sistema (Passo a Passo)"):
-        st.markdown("### 1️⃣ PLANILHA DE LANÇAMENTOS")
+    with st.expander("Como extrair as planilhas do Sistema (Passo a Passo)"):
+        st.markdown("### PLANILHA DE LANÇAMENTOS")
         st.markdown("""
         * **Origem:** Recebemos a planilha da Maçaneiro diretamente via e-mail.
         * **Divisão:** O arquivo original costuma vir dividido em três partes (**ADM, Motoristas e Manobra**). 
@@ -64,13 +64,13 @@ if not arq_lanc or not arq_sist:
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        st.markdown("### 2️⃣ LISTA DE EVENTOS DE RECIBO DE PAGAMENTO (Sistema)")
+        st.markdown("### LISTA DE EVENTOS DE RECIBO DE PAGAMENTO (Sistema)")
         st.markdown("""
         * **Caminho para extração no sistema:**
           * Folha de Pagamento ➔ Folha de Pagamento ➔ Lista de Eventos de Recibos de Pagamento...
         """)
         
-    st.info("👉 Por favor, anexe as DUAS planilhas no menu lateral para iniciar a conferência.")
+    st.info("Por favor, anexe as DUAS planilhas no menu lateral para iniciar a conferência.")
     st.stop()
 
 # -----------------------------------------------------------------------------
@@ -78,27 +78,24 @@ if not arq_lanc or not arq_sist:
 # -----------------------------------------------------------------------------
 col_btn, _ = st.columns([1, 3])
 with col_btn:
-    btn_comparar = st.button("⚡ INICIAR COMPARAÇÃO", type="primary")
+    btn_comparar = st.button("INICIAR COMPARAÇÃO", type="primary")
 
 if btn_comparar:
-    with st.spinner("⚙️ Processando cruzamento de dados..."):
+    with st.spinner("Processando cruzamento de dados..."):
         try:
-            resultados = executar_comparacao(
-                BytesIO(arq_lanc.read()),
-                BytesIO(arq_sist.read()),
-            )
+            resultados = executar_comparacao(arq_lanc, arq_sist)
         except Exception as e:
-            st.error(f"❌ Erro na comparação: {e}")
+            st.error(f"Erro na comparação: {e}")
             st.stop()
 
     if not resultados:
-        st.warning("⚠️ Nenhum evento foi comparado. Verifique os arquivos.")
+        st.warning("Nenhum evento foi comparado. Verifique os arquivos.")
         st.stop()
 
     df = pd.DataFrame(resultados)
     st.session_state["df_rubricas"] = df
     st.session_state["resultados_rubricas"] = resultados
-    st.success(f"✅ Comparação concluída com sucesso! ({len(df)} eventos processados)")
+    st.success(f"Comparação concluída com sucesso! ({len(df)} eventos processados)")
 
 if "df_rubricas" in st.session_state:
     df = st.session_state["df_rubricas"]
@@ -110,17 +107,17 @@ if "df_rubricas" in st.session_state:
     nao_enc = (df["Status"] == "NAO_ENCONTRADO").sum()
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('### <span class="subtitulo">📊 Resultado Geral</span>', unsafe_allow_html=True)
+    st.markdown('### <span class="subtitulo">Resultado Geral</span>', unsafe_allow_html=True)
 
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Eventos Comparados", total)
-    m2.metric("Conferidos OK ✅", ok_tot)
-    m3.metric("Divergências ❌", diverg)
-    m4.metric("Não Encontrados ⚠️", nao_enc)
+    m2.metric("Conferidos OK", ok_tot)
+    m3.metric("Divergências", diverg)
+    m4.metric("Não Encontrados", nao_enc)
 
     st.markdown("---")
 
-    st.markdown('### <span class="subtitulo">🔍 Filtros</span>', unsafe_allow_html=True)
+    st.markdown('### <span class="subtitulo">Filtros</span>', unsafe_allow_html=True)
     fc1, fc2, fc3 = st.columns([1.5, 2, 2])
 
     with fc1:
@@ -169,11 +166,11 @@ if "df_rubricas" in st.session_state:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    st.markdown('### <span class="subtitulo">⬇️ Exportar Relatório</span>', unsafe_allow_html=True)
+    st.markdown('### <span class="subtitulo">Exportar Relatório</span>', unsafe_allow_html=True)
     excel_bytes = gerar_excel(resultados)
 
     st.download_button(
-        label="📥 Baixar Planilha de Divergências",
+        label="Baixar Planilha de Divergências",
         data=excel_bytes,
         file_name="Relatorio_Divergencias.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

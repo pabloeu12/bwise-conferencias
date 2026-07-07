@@ -12,8 +12,8 @@ from openpyxl.utils import get_column_letter
 
 # Importando as funções globais e constantes do core
 from core.utils import (
-    moeda_para_float, limpar_str, 
-    COR_VERDE, COR_VERMELHO, COR_AMARELO, COR_CABECALHO, COR_RESUMO, 
+    moeda_para_float,
+    COR_VERDE, COR_VERMELHO, COR_CABECALHO, COR_RESUMO,
     FONTE_CAB, FONTE_BOLD, FONTE_NORMAL, BORDA
 )
 

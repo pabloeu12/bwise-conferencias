@@ -1,7 +1,7 @@
 """
 Inicio.py
-────────────
-Dashboard Executivo (Ponto de entrada SaaS)
+─────────
+Dashboard executivo — ponto de entrada da Plataforma de Auditoria Bwise.
 """
 
 import streamlit as st
@@ -9,117 +9,103 @@ from core.ui import renderizar_cabecalho, renderizar_navegacao_lateral
 
 st.set_page_config(
     page_title="Plataforma de Auditoria - Bwise",
-    page_icon="⚡",
+    page_icon="assets/logo bwise.png",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Renderiza o novo cabeçalho executivo
-renderizar_cabecalho("PLATAFORMA DE AUDITORIA<br>E CONFERÊNCIA")
+renderizar_cabecalho("PLATAFORMA DE AUDITORIA<br>E CONFERÊNCIA", tag="Painel Executivo")
 renderizar_navegacao_lateral("Início")
 
-# Texto de boas-vindas com design limpo
 st.markdown(
     """
-    <div style="text-align: center; max-width: 800px; margin: 0 auto 40px auto;">
-        <h2 style="color: #0F172A; font-size: 2rem; font-weight: 800; margin-bottom: 16px;">
-            Auditoria de Folha Inteligente e Automatizada
+    <div style="text-align: center; max-width: 760px; margin: 0 auto 36px auto;">
+        <h2 style="color: #1B1F2A; font-size: 1.85rem; font-weight: 800; margin-bottom: 12px;">
+            Auditoria de folha inteligente e automatizada
         </h2>
-        <p style="color: #64748B; font-size: 1.1rem; line-height: 1.6;">
-            Bem-vindo ao seu painel de controle. Selecione um dos módulos de inteligência 
-            abaixo ou utilize o menu lateral para iniciar a análise em lote dos seus documentos.
+        <p style="color: #667085; font-size: 1.05rem; line-height: 1.6;">
+            Selecione um dos módulos abaixo ou utilize o menu lateral para iniciar
+            a conferência dos seus documentos.
         </p>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-# ── Cards Premium dos Módulos ──────────────────────────────────────────────────
-col1, col2, col3, col4 = st.columns(4)
+# ── Módulos disponíveis (dados usados para montar os cards) ─────────────────
+MODULOS = [
+    {
+        "icone": "📋",
+        "titulo": "Auditoria de Rubricas",
+        "badge": "Cruzamento de Dados",
+        "descricao": (
+            "Compara planilhas de lançamentos com os extratos do sistema, "
+            "identificando divergências de valores com precisão centesimal."
+        ),
+        "requisitos": "Requer: Lançamentos e Lista de Eventos",
+        "pagina": "pages/1_Auditoria_de_Rubricas.py",
+        "key": "abrir_rubricas",
+    },
+    {
+        "icone": "💰",
+        "titulo": "Adiantamento Salarial",
+        "badge": "Comparativo Mensal",
+        "descricao": (
+            "Cruza admitidos, demitidos e férias para validar a proporcionalidade "
+            "dos adiantamentos, com relatórios e painéis gráficos automáticos."
+        ),
+        "requisitos": "Requer: Ativos, Férias e Eventos",
+        "pagina": "pages/2_Adiantamento_Salarial.py",
+        "key": "abrir_adiantamento",
+    },
+    {
+        "icone": "🏖️",
+        "titulo": "Conferência de Férias",
+        "badge": "Leitura de PDF",
+        "descricao": (
+            "Extrai dados do recibo em PDF e reconstrói o cálculo de médias de "
+            "variáveis e abono pecuniário com reajustes salariais históricos."
+        ),
+        "requisitos": "Requer: PDF, Histórico e Eventos",
+        "pagina": "pages/3_Conferencia_de_Ferias.py",
+        "key": "abrir_ferias",
+    },
+    {
+        "icone": "💳",
+        "titulo": "Conferência de Consignados",
+        "badge": "Limite de Desconto",
+        "descricao": (
+            "Cruza Emprega Brasil, recibos e eventos de pagamento para validar "
+            "os valores descontados e o limite legal de 35% do salário."
+        ),
+        "requisitos": "Requer: Emprega Brasil, Recibos e Eventos",
+        "pagina": "pages/4_Conferencia_de_Consignados.py",
+        "key": "abrir_consignados",
+    },
+]
 
-with col1:
-    st.markdown(
-        """
-        <div class="saas-card">
-            <div class="saas-badge">MÓDULO DE INTELIGÊNCIA</div>
-            <div class="saas-title">📋 Auditoria de Rubricas</div>
-            <div class="saas-desc">
-                Motor de cruzamento de dados em alta velocidade. Valida planilhas horizontais de lançamentos contra extratos KMM, identificando divergências centesimais com precisão absoluta.
+colunas = st.columns(4)
+for coluna, modulo in zip(colunas, MODULOS):
+    with coluna:
+        st.markdown(
+            f"""
+            <div class="bwise-card">
+                <div class="bwise-icon">{modulo['icone']}</div>
+                <div class="bwise-badge">{modulo['badge']}</div>
+                <div class="bwise-title">{modulo['titulo']}</div>
+                <div class="bwise-desc">{modulo['descricao']}</div>
+                <div class="bwise-footer">{modulo['requisitos']}</div>
             </div>
-            <div class="saas-footer">
-                🚀 Requer: Lançamentos & Lista de Eventos
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    if st.button("Abrir", key="abrir_rubricas", type="primary"):
-        st.switch_page("pages/1_Auditoria_de_Rubricas.py")
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Abrir módulo", key=modulo["key"], type="primary"):
+            st.switch_page(modulo["pagina"])
 
-with col2:
-    st.markdown(
-        """
-        <div class="saas-card">
-            <div class="saas-badge">MÓDULO DE INTELIGÊNCIA</div>
-            <div class="saas-title">💰 Adiantamento Salarial</div>
-            <div class="saas-desc">
-                Análise preditiva de pagamentos. Cruza admitidos, demitidos e férias para garantir a proporcionalidade exata dos adiantamentos (evento 100), com geração de relatórios e painéis gráficos.
-            </div>
-            <div class="saas-footer">
-                🚀 Requer: Ativos, Férias & Eventos
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    if st.button("Abrir", key="abrir_adiantamento", type="primary"):
-        st.switch_page("pages/2_Adiantamento_Salarial.py")
-
-with col3:
-    st.markdown(
-        """
-        <div class="saas-card">
-            <div class="saas-badge">MÓDULO DE INTELIGÊNCIA</div>
-            <div class="saas-title">🏖️ Conferência de Férias</div>
-            <div class="saas-desc">
-                Leitura nativa de PDF. Extrai dados contratuais e reconstrói o cálculo de médias de variáveis e abono pecuniário, aplicando reajustes salariais históricos de forma automática.
-            </div>
-            <div class="saas-footer">
-                🚀 Requer: PDF, Histórico & Eventos
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    if st.button("Abrir", key="abrir_ferias", type="primary"):
-        st.switch_page("pages/3_Conferencia_de_Ferias.py")
-
-with col4:
-    st.markdown(
-        """
-        <div class="saas-card">
-            <div class="saas-badge">MÓDULO DE INTELIGÊNCIA</div>
-            <div class="saas-title">💳 Conferencia de Consignados</div>
-            <div class="saas-desc">
-                Conferência dos descontos de empréstimos consignados. Cruza Emprega Brasil, recibos e eventos de pagamento para validar valores descontados e limite de 35%.
-            </div>
-            <div class="saas-footer">
-                🚀 Requer: Emprega Brasil, Recibos & Eventos
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    if st.button("Abrir", key="abrir_consignados", type="primary"):
-        st.switch_page("pages/4_Conferencia_de_Consignados.py")
-
-# ── Rodapé Minimalista ────────────────────────────────────────────────────────
 st.markdown(
     """
-    <div style="text-align: center; margin-top: 60px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
-        <p style="color: #94A3B8; font-size: 0.85rem; font-weight: 500;">
-            © 2026 Bwise Analytics. Todos os direitos reservados.
-        </p>
+    <div class="bwise-footer-page">
+        © 2026 Bwise Analytics. Todos os direitos reservados.
     </div>
     """,
     unsafe_allow_html=True,

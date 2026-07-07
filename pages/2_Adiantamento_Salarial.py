@@ -14,7 +14,8 @@ from core.utils import formatar_moeda_br
 from services.adiantamento import processar_dados, gerar_excel_formatado
 
 st.set_page_config(
-    page_title="Conferência de Adiantamento - Bwise & Maçaneiro", 
+    page_title="Conferência de Adiantamento - Bwise & Maçaneiro",
+    page_icon="assets/logo bwise.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -26,7 +27,7 @@ renderizar_navegacao_lateral("Adiantamento Salarial")
 # -----------------------------------------------------------------------------
 # MENU LATERAL (SIDEBAR)
 # -----------------------------------------------------------------------------
-st.sidebar.markdown('### <span class="subtitulo">📁 Importação de Dados</span>', unsafe_allow_html=True)
+st.sidebar.markdown('### <span class="subtitulo">Importação de Dados</span>', unsafe_allow_html=True)
 file_eventos = st.sidebar.file_uploader("1. Upload: LISTA DE EVENTOS", type=["xlsx", "csv"])
 file_ativos  = st.sidebar.file_uploader("2. Upload: LISTA DE ATIVOS", type=["xlsx", "csv"])
 file_ferias  = st.sidebar.file_uploader("3. Upload: LISTA DE FÉRIAS", type=["xlsx", "csv"])
@@ -35,7 +36,7 @@ file_ferias  = st.sidebar.file_uploader("3. Upload: LISTA DE FÉRIAS", type=["xl
 # TELA INICIAL (SEM ARQUIVOS)
 # -----------------------------------------------------------------------------
 if not (file_eventos and file_ativos and file_ferias):
-    with st.expander("📖 Como extrair as planilhas do KMM (Passo a Passo)"):
+    with st.expander("Como extrair as planilhas do KMM (Passo a Passo)"):
         st.markdown("""
         ### 1. LISTA DE EVENTOS DE RECIBO DE PAGAMENTO
         **Caminho:** `Folha de Pagamento` ➔ `Folha de Pagamento` ➔ `Lista de Eventos de Recibos de Pagamento...`
@@ -56,23 +57,23 @@ if not (file_eventos and file_ativos and file_ferias):
         **Caminho:** `Folha de Pagamento` ➔ `Férias` ➔ `Lista de Períodos Aquisitivos e Concessivos...`
         * Clicar em **"Filtrar"** e salvar.
         """)
-    st.info("👈 Por favor, anexe as TRÊS planilhas no menu lateral para iniciar a conferência.")
+    st.info("Por favor, anexe as TRÊS planilhas no menu lateral para iniciar a conferência.")
     st.stop()
 
 # -----------------------------------------------------------------------------
 # PROCESSAMENTO E RESULTADOS
 # -----------------------------------------------------------------------------
-with st.spinner("⚙️ Processando dados, férias e aplicando regras de negócio..."):
+with st.spinner("Processando dados, férias e aplicando regras de negócio..."):
     try:
         df_final, mes_ant, mes_atu, tot_ant_global, tot_atu_global = processar_dados(file_eventos, file_ativos, file_ferias)
     except Exception as e:
-        st.error(f"❌ Erro ao processar: {e}")
+        st.error(f"Erro ao processar: {e}")
         st.stop()
 
-st.success(f"✅ Dados processados com sucesso! Comparando Mês {mes_ant} x Mês {mes_atu}.")
+st.success(f"Dados processados com sucesso! Comparando Mês {mes_ant} x Mês {mes_atu}.")
 
 # --- FILTROS ---
-st.markdown('### <span class="subtitulo">🔍 Filtros de Busca</span>', unsafe_allow_html=True)
+st.markdown('### <span class="subtitulo">Filtros de Busca</span>', unsafe_allow_html=True)
 col_f1, col_f2, col_f3 = st.columns(3)
 
 with col_f1: f_nome = st.text_input("Buscar por Nome")
@@ -88,7 +89,7 @@ if f_status != "Todos": df_filtrado = df_filtrado[df_filtrado['Status'] == f_sta
 
 # --- RESUMO GERAL ---
 st.markdown("---")
-st.markdown('### <span class="subtitulo">📊 Resumo Geral</span>', unsafe_allow_html=True)
+st.markdown('### <span class="subtitulo">Resumo Geral</span>', unsafe_allow_html=True)
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Ativos", len(df_final))
 
@@ -103,11 +104,11 @@ dif_total_global = tot_atu_global - tot_ant_global
 
 # --- TABELA DE RESULTADOS E DOWNLOAD ---
 st.markdown("---")
-st.markdown('### <span class="subtitulo">📋 Tabela de Conferência (Por Empregado)</span>', unsafe_allow_html=True)
+st.markdown('### <span class="subtitulo">Tabela de Conferência (Por Empregado)</span>', unsafe_allow_html=True)
 
 excel_ready = gerar_excel_formatado(df_filtrado, mes_ant, mes_atu)
 st.download_button(
-    label="📥 Baixar Tabela de Conferência (Excel Formatado)",
+    label="Baixar Tabela de Conferência (Excel Formatado)",
     data=excel_ready,
     file_name=f"Conferencia_Adiantamentos_Mes_{mes_atu}.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -138,7 +139,7 @@ st.dataframe(
 
 # --- ANÁLISES GRÁFICAS ---
 st.markdown("---")
-st.markdown('### <span class="subtitulo">📈 Análises Gráficas da Empresa</span>', unsafe_allow_html=True)
+st.markdown('### <span class="subtitulo">Análises Gráficas da Empresa</span>', unsafe_allow_html=True)
 
 st.markdown("<br><b>Comparativo de Adiantamentos (Mês a Mês)</b>", unsafe_allow_html=True)
 g1, g2 = st.columns(2)

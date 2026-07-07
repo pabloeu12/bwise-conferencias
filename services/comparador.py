@@ -32,6 +32,36 @@ COLUNAS_SAIDA = [
 # FUNÇÕES AUXILIARES
 # ════════════════════════════════════════════════════════════
 
+def _nome_arquivo(arquivo) -> str:
+    return str(getattr(arquivo, "name", getattr(arquivo, "filename", ""))).lower()
+
+def _reposicionar(arquivo):
+    try:
+        arquivo.seek(0)
+    except Exception:
+        pass
+
+def _carregar_matriz(arquivo) -> list[tuple]:
+    """
+    Lê a planilha (XLSX ou CSV) e devolve uma matriz de linhas (lista de tuplas),
+    no mesmo formato que `ws.iter_rows(values_only=True)` do openpyxl produzia
+    originalmente. Mantém o restante da lógica de leitura idêntico para ambos
+    os formatos aceitos no uploader (.xlsx e .csv).
+    """
+    _reposicionar(arquivo)
+    nome = _nome_arquivo(arquivo)
+
+    if nome.endswith(".csv"):
+        df = pd.read_csv(arquivo, header=None, sep=None, engine="python", dtype=object)
+        df = df.where(pd.notnull(df), None)
+        return [tuple(linha) for linha in df.itertuples(index=False, name=None)]
+
+    wb = openpyxl.load_workbook(arquivo, data_only=True)
+    ws = wb.active
+    dados = list(ws.iter_rows(values_only=True))
+    wb.close()
+    return dados
+
 def extrair_codigos(nome_coluna: str) -> list[str]:
     """Extrai todos os códigos numéricos de um nome de coluna."""
     return re.findall(r"\((\d+)\)", limpar_str(nome_coluna))
@@ -71,10 +101,7 @@ def comparar(val_lanc, ref, prov, desc) -> tuple[str, str]:
 # ════════════════════════════════════════════════════════════
 
 def ler_lancamentos(arquivo) -> tuple[dict, dict, list]:
-    wb = openpyxl.load_workbook(arquivo, data_only=True)
-    ws = wb.active
-    dados = list(ws.iter_rows(values_only=True))
-    wb.close()
+    dados = _carregar_matriz(arquivo)
 
     if not dados:
         raise ValueError("Planilha de lançamentos está vazia.")
@@ -112,10 +139,7 @@ def ler_lancamentos(arquivo) -> tuple[dict, dict, list]:
     return lanc_por_mat, nomes, colunas
 
 def ler_sistema(arquivo) -> dict:
-    wb = openpyxl.load_workbook(arquivo, data_only=True)
-    ws = wb.active
-    dados = list(ws.iter_rows(values_only=True))
-    wb.close()
+    dados = _carregar_matriz(arquivo)
 
     if not dados:
         raise ValueError("Planilha do sistema está vazia.")

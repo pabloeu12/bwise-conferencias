@@ -1,156 +1,352 @@
 """
 core/ui.py
 ──────────
-Componentes visuais e injeção de CSS Premium (Estilo SaaS).
+Componentes visuais e injeção de CSS globais da Plataforma de Auditoria Bwise.
+
+Identidade visual baseada na marca Bwise (grafite + verde), extraída da logo
+oficial em assets/. Este módulo concentra 100% do estilo do sistema para que
+qualquer ajuste futuro seja feito em um único lugar.
 """
 
 import os
 import streamlit as st
 
+# ════════════════════════════════════════════════════════════
+# PALETA DE MARCA (Bwise)
+# ════════════════════════════════════════════════════════════
+COR_GRAFITE       = "#232838"   # cor principal de texto / botões primários
+COR_GRAFITE_CLARO = "#3A4059"
+COR_VERDE         = "#00D573"   # verde de marca (destaques, sucesso, ativo)
+COR_VERDE_ESCURO  = "#00B863"
+COR_FUNDO         = "#F6F7F9"
+COR_SUPERFICIE    = "#FFFFFF"
+COR_BORDA         = "#E3E6EC"
+COR_TEXTO         = "#1B1F2A"
+COR_TEXTO_SEC     = "#667085"
+
 PAGINAS_APP = [
-    ("Início", "Inicio.py"),
-    ("Auditoria de Rubricas", "pages/1_Auditoria_de_Rubricas.py"),
-    ("Adiantamento Salarial", "pages/2_Adiantamento_Salarial.py"),
-    ("Conferencia de Férias", "pages/3_Conferencia_de_Ferias.py"),
-    ("Conferencia de Consignados", "pages/4_Conferencia_de_Consignados.py"),
+    ("Início", "Inicio.py", "🏠"),
+    ("Auditoria de Rubricas", "pages/1_Auditoria_de_Rubricas.py", "📋"),
+    ("Adiantamento Salarial", "pages/2_Adiantamento_Salarial.py", "💰"),
+    ("Conferencia de Férias", "pages/3_Conferencia_de_Ferias.py", "🏖️"),
+    ("Conferencia de Consignados", "pages/4_Conferencia_de_Consignados.py", "💳"),
 ]
 
+
 def injetar_css_global():
-    """Injeta estilos avançados para transformar o Streamlit em um SaaS moderno."""
+    """Injeta o design system completo da plataforma (SaaS corporativo)."""
     st.markdown(
         """
         <style>
-        /* 1. Esconder elementos padrões do Streamlit sem remover o controle da sidebar */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        html, body, [class*="css"] {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        /* 1. Esconder elementos padrão do Streamlit, mantendo o controle de recolher a sidebar */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         [data-testid="stToolbar"] {visibility: hidden;}
+        [data-testid="stDecoration"] {display: none;}
 
-        /* 2. Fundo geral e ajustes de espaçamento */
+        /* 2. Fundo geral e espaçamento */
         .stApp {
-            background-color: #F8FAFC;
+            background-color: #F6F7F9;
         }
         .block-container {
-            padding-top: 2rem !important;
-            padding-bottom: 2rem !important;
+            padding-top: 1.75rem !important;
+            padding-bottom: 3rem !important;
             max-width: 1200px;
         }
+        h1, h2, h3 { color: #1B1F2A; }
 
-        /* 3. Botões Premium */
+        /* ── 3. BOTÕES ─────────────────────────────────────────────── */
         .stButton > button {
             width: 100%;
-            border-radius: 8px;
+            border-radius: 10px;
             font-weight: 600;
-            transition: all 0.3s ease;
-            border: none;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            font-size: 0.92rem;
+            padding: 0.55rem 1rem;
+            transition: all 0.18s ease;
+            border: 1px solid #E3E6EC;
+            background-color: #FFFFFF;
+            color: #232838;
+            box-shadow: none;
         }
         .stButton > button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border-color: #232838;
+            color: #232838;
+            transform: translateY(-1px);
         }
+        .stButton > button:active { transform: translateY(0); }
         .stButton > button[kind="primary"] {
-            background-color: #1E3A8A;
-            color: white;
+            background-color: #232838;
+            color: #FFFFFF;
+            border: 1px solid #232838;
+            box-shadow: 0 2px 8px rgba(35, 40, 56, 0.18);
+        }
+        .stButton > button[kind="primary"]:hover {
+            background-color: #12151d;
+            border-color: #12151d;
+            box-shadow: 0 6px 14px rgba(35, 40, 56, 0.24);
+        }
+        .stButton > button:disabled {
+            opacity: 0.55;
+            transform: none;
+        }
+        .stDownloadButton > button {
+            width: 100%;
+            border-radius: 10px;
+            font-weight: 600;
+            background-color: #00D573;
+            color: #0B2015;
+            border: 1px solid #00D573;
+            box-shadow: 0 2px 8px rgba(0, 213, 115, 0.25);
+            transition: all 0.18s ease;
+        }
+        .stDownloadButton > button:hover {
+            background-color: #00B863;
+            border-color: #00B863;
+            transform: translateY(-1px);
         }
 
-        /* 4. Cards Executivos (Dashboard) */
-        .saas-card {
+        /* ── 4. CARDS DOS MÓDULOS (Dashboard) ──────────────────────── */
+        .bwise-card {
+            position: relative;
             background: #FFFFFF;
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-            border: 1px solid #E2E8F0;
-            transition: all 0.3s ease;
+            border-radius: 14px;
+            padding: 22px 22px 18px 22px;
+            border: 1px solid #E3E6EC;
+            transition: all 0.22s ease;
             height: 100%;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
-        .saas-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 20px -3px rgba(0,0,0,0.1);
-            border-color: #1E3A8A;
+        .bwise-card::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #00D573, #00B863);
+            opacity: 0;
+            transition: opacity 0.2s ease;
         }
-        .saas-badge {
-            background-color: #EFF6FF;
-            color: #1D4ED8;
-            padding: 4px 12px;
-            border-radius: 999px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            display: inline-block;
-            margin-bottom: 16px;
-            width: max-content;
+        .bwise-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 28px -12px rgba(23, 27, 38, 0.18);
+            border-color: #232838;
         }
-        .saas-title {
-            color: #0F172A;
+        .bwise-card:hover::before { opacity: 1; }
+        .bwise-icon {
+            width: 42px; height: 42px;
+            border-radius: 10px;
+            background: #EAFBF2;
+            display: flex; align-items: center; justify-content: center;
             font-size: 1.25rem;
-            font-weight: 800;
+            margin-bottom: 14px;
+        }
+        .bwise-badge {
+            background-color: #F1F2F6;
+            color: #4B5266;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            display: inline-block;
             margin-bottom: 12px;
+            width: max-content;
+            text-transform: uppercase;
+        }
+        .bwise-title {
+            color: #1B1F2A;
+            font-size: 1.12rem;
+            font-weight: 800;
+            margin-bottom: 8px;
             line-height: 1.3;
         }
-        .saas-desc {
-            color: #64748B;
-            font-size: 0.95rem;
-            line-height: 1.6;
-            margin-bottom: 20px;
+        .bwise-desc {
+            color: #667085;
+            font-size: 0.9rem;
+            line-height: 1.55;
+            margin-bottom: 16px;
             flex-grow: 1;
         }
-        .saas-footer {
-            color: #94A3B8;
-            font-size: 0.85rem;
-            border-top: 1px solid #F1F5F9;
-            padding-top: 16px;
+        .bwise-footer {
+            color: #8A93A6;
+            font-size: 0.78rem;
+            border-top: 1px solid #F1F2F6;
+            padding-top: 12px;
             margin-top: auto;
             font-weight: 500;
         }
 
-        /* 5. Cabeçalho Moderno (Top Bar) */
-        .top-bar {
-            background: white;
-            padding: 16px 32px;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-            margin-bottom: 24px;
+        /* ── 5. CABEÇALHO (Top Bar) ────────────────────────────────── */
+        .bwise-topbar {
+            background: #FFFFFF;
+            padding: 14px 28px;
+            border-radius: 14px;
+            margin-bottom: 26px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border: 1px solid #E2E8F0;
+            border: 1px solid #E3E6EC;
         }
-        .top-bar-title {
-            color: #1E3A8A;
-            font-size: 1.4rem;
+        .bwise-topbar-title {
+            color: #1B1F2A;
+            font-size: 1.3rem;
             font-weight: 800;
             margin: 0;
             text-align: center;
-            line-height: 1.2;
+            line-height: 1.25;
+            letter-spacing: 0.01em;
         }
-        
-        /* Subtítulos padronizados para as páginas */
-        .subtitulo {
-            color: #0F172A;
+        .bwise-topbar-tag {
+            display: block;
+            color: #00B863;
+            font-size: 0.7rem;
             font-weight: 700;
-            font-size: 1.1rem;
-            margin-bottom: 10px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-top: 2px;
         }
 
-        /* 6. Navegação lateral unificada */
+        .subtitulo {
+            color: #1B1F2A;
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+
+        /* ── 6. SIDEBAR / NAVEGAÇÃO ────────────────────────────────── */
         section[data-testid="stSidebar"] {
             background-color: #FFFFFF;
-            border-right: 1px solid #E2E8F0;
+            border-right: 1px solid #E3E6EC;
         }
         section[data-testid="stSidebar"] .stButton > button {
             justify-content: flex-start;
             text-align: left;
+            border: 1px solid transparent;
+            background-color: transparent;
             box-shadow: none;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.2rem;
+            font-weight: 500;
+            color: #4B5266;
+        }
+        section[data-testid="stSidebar"] .stButton > button:hover {
+            background-color: #F6F7F9;
+            color: #1B1F2A;
+            border-color: #E3E6EC;
+            transform: none;
+        }
+        section[data-testid="stSidebar"] .stButton > button[kind="primary"] {
+            background-color: #EAFBF2;
+            color: #0B2015;
+            border-left: 3px solid #00D573;
+            border-radius: 8px;
+            box-shadow: none;
+            font-weight: 700;
+        }
+        .bwise-sidebar-brand {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            padding: 6px 4px 18px 4px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #F1F2F6;
+        }
+        .bwise-sidebar-eyebrow {
+            color: #8A93A6;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        .bwise-sidebar-section {
+            color: #8A93A6;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin: 4px 0 8px 4px;
+        }
+
+        /* ── 7. UPLOAD DE ARQUIVOS ─────────────────────────────────── */
+        [data-testid="stFileUploader"] section {
+            background-color: #FBFBFC;
+            border: 1.5px dashed #C9CEDA;
+            border-radius: 10px;
+            padding: 0.6rem;
+            transition: border-color 0.18s ease;
+        }
+        [data-testid="stFileUploader"] section:hover {
+            border-color: #00D573;
+        }
+        [data-testid="stFileUploaderFile"] {
+            background-color: #FFFFFF;
+            border: 1px solid #E3E6EC;
+            border-radius: 8px;
+        }
+
+        /* ── 8. MENSAGENS (alert boxes) ────────────────────────────── */
+        div[data-testid="stAlertContentInfo"],
+        div[data-testid="stAlertContentSuccess"],
+        div[data-testid="stAlertContentWarning"],
+        div[data-testid="stAlertContentError"] {
+            font-size: 0.92rem;
+        }
+        .stAlert {
+            border-radius: 10px !important;
+            border-width: 1px !important;
+            border-style: solid !important;
+        }
+
+        /* ── 9. TABELAS ────────────────────────────────────────────── */
+        [data-testid="stDataFrame"] {
+            border: 1px solid #E3E6EC;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        /* ── 10. MÉTRICAS ──────────────────────────────────────────── */
+        [data-testid="stMetric"] {
+            background-color: #FFFFFF;
+            border: 1px solid #E3E6EC;
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+        [data-testid="stMetricLabel"] { color: #667085; font-weight: 600; }
+        [data-testid="stMetricValue"] { color: #1B1F2A; font-weight: 800; }
+
+        /* ── 11. EXPANDERS ─────────────────────────────────────────── */
+        [data-testid="stExpander"] {
+            border: 1px solid #E3E6EC;
+            border-radius: 10px;
+            background-color: #FFFFFF;
+        }
+
+        /* ── 12. RODAPÉ ────────────────────────────────────────────── */
+        .bwise-footer-page {
+            text-align: center;
+            margin-top: 56px;
+            padding-top: 18px;
+            border-top: 1px solid #E3E6EC;
+            color: #8A93A6;
+            font-size: 0.82rem;
+            font-weight: 500;
         }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
+
 def buscar_logo(palavra_chave: str) -> str | None:
+    """Procura um arquivo de imagem (logo) pelo nome, em pastas conhecidas."""
     pastas = ["assets", "."]
     for pasta in pastas:
         try:
@@ -162,27 +358,30 @@ def buscar_logo(palavra_chave: str) -> str | None:
             continue
     return None
 
-def renderizar_cabecalho(titulo_html: str):
-    """Renderiza um cabeçalho estilo "Top Bar" em formato de cartão isolado."""
+
+def renderizar_cabecalho(titulo_html: str, tag: str = "PAINEL DE CONFERÊNCIA"):
+    """Renderiza o cabeçalho institucional (logo Bwise + título + logo do cliente)."""
     injetar_css_global()
 
     logo_bwise = buscar_logo("bwise")
     logo_macaneiro = buscar_logo("macaneiro")
 
-    # Estrutura HTML do cabeçalho
-    st.markdown('<div class="top-bar">', unsafe_allow_html=True)
-    
+    st.markdown('<div class="bwise-topbar">', unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 3, 1], vertical_alignment="center")
 
     with col1:
         if logo_bwise:
-            st.image(logo_bwise, width=140)
+            st.image(logo_bwise, width=120)
         else:
-            st.markdown("<b>BWISE</b>", unsafe_allow_html=True)
+            st.markdown(
+                "<span style='font-weight:800;font-size:1.1rem;color:#232838;'>bwise</span>",
+                unsafe_allow_html=True,
+            )
 
     with col2:
         st.markdown(
-            f'<h1 class="top-bar-title">{titulo_html}</h1>',
+            f'<h1 class="bwise-topbar-title">{titulo_html}'
+            f'<span class="bwise-topbar-tag">{tag}</span></h1>',
             unsafe_allow_html=True,
         )
 
@@ -190,24 +389,40 @@ def renderizar_cabecalho(titulo_html: str):
         if logo_macaneiro:
             _, sub = st.columns([1, 1])
             with sub:
-                st.image(logo_macaneiro, width=140)
+                st.image(logo_macaneiro, width=110)
         else:
-            st.markdown("<b>MAÇANEIRO</b>", unsafe_allow_html=True)
-            
+            st.markdown(
+                "<div style='text-align:right;font-weight:700;color:#8A93A6;'>MAÇANEIRO</div>",
+                unsafe_allow_html=True,
+            )
+
     st.markdown('</div>', unsafe_allow_html=True)
 
+
 def renderizar_navegacao_lateral(pagina_atual: str):
-    """Renderiza o menu lateral fixo dos módulos."""
+    """Renderiza o menu lateral fixo/recolhível dos módulos do sistema."""
     with st.sidebar:
-        st.markdown("### Módulos")
-        for rotulo, caminho in PAGINAS_APP:
+        logo_bwise = buscar_logo("bwise")
+        st.markdown('<div class="bwise-sidebar-brand">', unsafe_allow_html=True)
+        if logo_bwise:
+            st.image(logo_bwise, width=104)
+        st.markdown(
+            '<span class="bwise-sidebar-eyebrow">Plataforma de Auditoria</span>',
+            unsafe_allow_html=True,
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="bwise-sidebar-section">Módulos</div>', unsafe_allow_html=True)
+        for rotulo, caminho, icone in PAGINAS_APP:
             selecionado = rotulo == pagina_atual
             if st.button(
-                rotulo,
+                f"{icone}  {rotulo}",
                 key=f"nav_{caminho}",
                 type="primary" if selecionado else "secondary",
                 disabled=selecionado,
                 use_container_width=True,
             ):
                 st.switch_page(caminho)
+
         st.divider()
+        st.caption("© 2026 Bwise Analytics")
