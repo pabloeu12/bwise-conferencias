@@ -49,6 +49,12 @@ def injetar_css_global():
         footer {visibility: hidden;}
         [data-testid="stToolbar"] {visibility: hidden;}
         [data-testid="stDecoration"] {display: none;}
+        /* O botão de reabrir a sidebar recolhida vive dentro da toolbar acima;
+           sem esta regra ele ficaria escondido junto com o resto da toolbar,
+           deixando a sidebar recolhida sem forma de reabrir. */
+        [data-testid="stExpandSidebarButton"] {
+            visibility: visible !important;
+        }
 
         /* 2. Fundo geral e espaçamento */
         .stApp {
