@@ -10,6 +10,8 @@ import pandas as pd
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 
+from core.utils import moeda_para_float
+
 EVENTOS_MEDIAS = [158, 115, 161, 117, 120, 619, 575, 642, 644, 645, 643, 153, 465, 700, 699, 460]
 
 def arredondar(valor):
@@ -17,14 +19,6 @@ def arredondar(valor):
         return float(Decimal(str(valor)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
     except:
         return valor
-
-def parse_br_float(val):
-    if pd.isna(val): return 0.0
-    if isinstance(val, (int, float)): return float(val)
-    v_str = str(val).strip()
-    if ',' in v_str:
-        v_str = v_str.replace('.', '').replace(',', '.')
-    return float(v_str)
 
 def nome_arquivo(arquivo) -> str:
     return str(getattr(arquivo, "name", getattr(arquivo, "filename", ""))).lower()
@@ -99,7 +93,7 @@ def carregar_eventos(eventos_file, matricula):
     df_evt.columns = df_evt.columns.str.strip()
     df_evt = df_evt[df_evt['Matrícula'] == matricula]
     if 'Valor Provento' in df_evt.columns:
-        df_evt['Valor Provento'] = df_evt['Valor Provento'].apply(parse_br_float)
+        df_evt['Valor Provento'] = df_evt['Valor Provento'].apply(moeda_para_float)
     return df_evt
 
 def processar_auditoria_ferias(pdf_bytes, eventos_file, historico_file) -> dict:

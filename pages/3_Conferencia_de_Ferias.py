@@ -5,14 +5,10 @@ Interface Visual do Módulo de Conferência de Férias.
 """
 
 import streamlit as st
-from dateutil.relativedelta import relativedelta
 
 # Importando do nosso core e services
 from core.ui import renderizar_cabecalho, renderizar_navegacao_lateral
-from services.ferias import (
-    extrair_dados_pdf, carregar_historico, carregar_eventos, 
-    obter_salario_epoca, arredondar, EVENTOS_MEDIAS
-)
+from services.ferias import processar_auditoria_ferias
 
 st.set_page_config(
     page_title="Conferência de Férias - Bwise & Maçaneiro",
@@ -60,114 +56,74 @@ if not (pdf_file and eventos_file and historico_file):
 # -----------------------------------------------------------------------------
 # PROCESSAMENTO E RESULTADOS
 # -----------------------------------------------------------------------------
+# Usa a mesma função de services/ferias.py chamada pelo backend FastAPI (app.py),
+# para garantir que Streamlit e Next.js sempre calculem exatamente igual.
 with st.spinner("Processando informações do PDF e calculando médias..."):
     try:
-        dados_pdf = extrair_dados_pdf(pdf_file)
+        resultado = processar_auditoria_ferias(pdf_file, eventos_file, historico_file)
     except Exception as e:
-        st.error(f"Não foi possível ler o PDF do recibo de férias: {e}")
+        st.error(f"Erro durante o processamento dos documentos: {e}")
         st.stop()
-    matricula = dados_pdf.get('matricula', 0)
-    salario_atual = dados_pdf.get('salario', 0.0)
+
+matricula = resultado['matricula']
+salario_atual = resultado['salario_contratual']
 
 st.markdown('### <span class="subtitulo">Resumo Extraído</span>', unsafe_allow_html=True)
 st.write(f"**Matrícula:** {matricula}")
 st.write(f"**Salário Contratual:** R$ {salario_atual:,.2f}")
-if 'inicio_aquisitivo' in dados_pdf:
-    st.write(f"**Período Aquisitivo:** {dados_pdf['inicio_aquisitivo'].strftime('%d/%m/%Y')} a {dados_pdf['fim_aquisitivo'].strftime('%d/%m/%Y')}")
+if resultado['periodo_aquisitivo'] != 'Não Identificado':
+    st.write(f"**Período Aquisitivo:** {resultado['periodo_aquisitivo']}")
 st.markdown("---")
 
 # --- PARTE 1: CONFERÊNCIA FÉRIAS E ABONO BASE ---
 st.markdown('### <span class="subtitulo">1. Conferência Férias e Abono</span>', unsafe_allow_html=True)
-valor_dia = salario_atual / 30
-
 col_a, col_b = st.columns(2)
 
-if 189 in dados_pdf['eventos']:
-    ref_ferias = dados_pdf['eventos'][189]['referencia']
-    valor_pdf_ferias = dados_pdf['eventos'][189]['provento']
-    calc_ferias = arredondar(valor_dia * ref_ferias)
+v_ferias = next((v for v in resultado['verificacoes_base'] if v['evento'].startswith('0189')), None)
+v_abono = next((v for v in resultado['verificacoes_base'] if v['evento'].startswith('0191')), None)
+
+if v_ferias:
     with col_a:
-        st.info(f"**0189 - FÉRIAS NORMAIS**\n\n"
-                f"Cálculo: R$ {salario_atual:,.2f} / 30 * {ref_ferias} = **R$ {calc_ferias:,.2f}**\n\n"
-                f"Valor no PDF: **R$ {valor_pdf_ferias:,.2f}**\n\n"
-                f"Diferença: R$ {(calc_ferias - valor_pdf_ferias):,.2f}")
-                
-if 191 in dados_pdf['eventos']:
-    ref_abono = dados_pdf['eventos'][191]['referencia']
-    valor_pdf_abono = dados_pdf['eventos'][191]['provento']
-    calc_abono = arredondar(valor_dia * ref_abono)
+        st.info(f"**{v_ferias['evento']}**\n\n"
+                f"Cálculo: {v_ferias['formula']} = **R$ {v_ferias['calculado']:,.2f}**\n\n"
+                f"Valor no PDF: **R$ {v_ferias['pdf']:,.2f}**\n\n"
+                f"Diferença: R$ {v_ferias['diferenca']:,.2f}")
+
+if v_abono:
     with col_b:
-        st.info(f"**0191 - ABONO PECUNIÁRIO**\n\n"
-                f"Cálculo: R$ {salario_atual:,.2f} / 30 * {ref_abono} = **R$ {calc_abono:,.2f}**\n\n"
-                f"Valor no PDF: **R$ {valor_pdf_abono:,.2f}**\n\n"
-                f"Diferença: R$ {(calc_abono - valor_pdf_abono):,.2f}")
+        st.info(f"**{v_abono['evento']}**\n\n"
+                f"Cálculo: {v_abono['formula']} = **R$ {v_abono['calculado']:,.2f}**\n\n"
+                f"Valor no PDF: **R$ {v_abono['pdf']:,.2f}**\n\n"
+                f"Diferença: R$ {v_abono['diferenca']:,.2f}")
 
 st.markdown("---")
 
 # --- PARTE 2: CONFERÊNCIA DE MÉDIAS VARIÁVEIS ---
 st.markdown('### <span class="subtitulo">2. Conferência de Médias de Variáveis</span>', unsafe_allow_html=True)
 
-if 'inicio_aquisitivo' in dados_pdf:
-    meses_calculo = []
-    data_iter = dados_pdf['inicio_aquisitivo']
-    for _ in range(12):
-        meses_calculo.append((data_iter.month, data_iter.year))
-        data_iter += relativedelta(months=1)
+st.write(f"**Soma Total de Proventos Atualizados:** R$ {resultado['total_proventos_atualizados']:,.2f}")
+st.write(f"**Média Apurada (A dividir por 12):** R$ {resultado['media_mensal_apurada']:,.2f}")
 
-    try:
-        df_hist = carregar_historico(historico_file, matricula)
-        df_evt = carregar_eventos(eventos_file, matricula)
-        
-        total_medias_ajustadas = 0.0
-        detalhes_medias = []
-        
-        for _, row in df_evt.iterrows():
-            try:
-                mes_evt, ano_evt, cod_evt = int(row['Mês']), int(row['Ano']), int(row['Cód. Evento'])
-            except:
-                continue
-            
-            if (mes_evt, ano_evt) in meses_calculo and cod_evt in EVENTOS_MEDIAS:
-                valor_original = float(row['Valor Provento'])
-                salario_epoca = obter_salario_epoca(df_hist, mes_evt, ano_evt)
-                
-                if salario_epoca and salario_epoca < salario_atual:
-                    valor_ajustado = arredondar((valor_original / salario_epoca) * salario_atual)
-                else:
-                    valor_ajustado = arredondar(valor_original)
-                    
-                total_medias_ajustadas += valor_ajustado
-                detalhes_medias.append(f"{mes_evt:02d}/{ano_evt} - Cód {cod_evt}: R$ {valor_original:,.2f} (Base: R$ {salario_epoca or salario_atual:,.2f}) -> Corrigido: R$ {valor_ajustado:,.2f}")
+with st.expander("Ver detalhamento dos eventos de médias da competência"):
+    for det in resultado['detalhes_medias']:
+        st.write(det)
 
-        media_mensal = arredondar(total_medias_ajustadas / 12)
-        
-        st.write(f"**Soma Total de Proventos Atualizados:** R$ {total_medias_ajustadas:,.2f}")
-        st.write(f"**Média Apurada (A dividir por 12):** R$ {media_mensal:,.2f}")
-        
-        with st.expander("Ver detalhamento dos eventos de médias da competência"):
-            for det in detalhes_medias:
-                st.write(det)
+st.write("")
+col_c, col_d = st.columns(2)
 
-        st.write("")
-        col_c, col_d = st.columns(2)
-        
-        if 223 in dados_pdf['eventos']: 
-            ref_med_ferias = dados_pdf['eventos'][223]['referencia']
-            calc_med_ferias = arredondar((media_mensal / 30) * ref_med_ferias)
-            with col_c:
-                st.success(f"**0223 - MEDIAS S/ VARIAVEIS - FÉRIAS**\n\n"
-                           f"Cálculo: R$ {media_mensal:,.2f} / 30 * {ref_med_ferias} = **R$ {calc_med_ferias:,.2f}**\n\n"
-                           f"Valor PDF: **R$ {dados_pdf['eventos'][223]['provento']:,.2f}**\n\n"
-                           f"Diferença: R$ {(calc_med_ferias - dados_pdf['eventos'][223]['provento']):,.2f}")
-                           
-        if 224 in dados_pdf['eventos']:
-            ref_med_abono = dados_pdf['eventos'][224]['referencia']
-            calc_med_abono = arredondar((media_mensal / 30) * ref_med_abono)
-            with col_d:
-                st.success(f"**0224 - MEDIAS S/ VARIAVEIS - ABONO**\n\n"
-                           f"Cálculo: R$ {media_mensal:,.2f} / 30 * {ref_med_abono} = **R$ {calc_med_abono:,.2f}**\n\n"
-                           f"Valor PDF: **R$ {dados_pdf['eventos'][224]['provento']:,.2f}**\n\n"
-                           f"Diferença: R$ {(calc_med_abono - dados_pdf['eventos'][224]['provento']):,.2f}")
-    
-    except Exception as e:
-        st.error(f"Erro durante o processamento das planilhas: {e}")
+v_med_ferias = next((v for v in resultado['verificacoes_medias'] if v['evento'].startswith('0223')), None)
+v_med_abono = next((v for v in resultado['verificacoes_medias'] if v['evento'].startswith('0224')), None)
+
+if v_med_ferias:
+    with col_c:
+        st.success(f"**{v_med_ferias['evento']}**\n\n"
+                   f"Cálculo: {v_med_ferias['formula']} = **R$ {v_med_ferias['calculado']:,.2f}**\n\n"
+                   f"Valor PDF: **R$ {v_med_ferias['pdf']:,.2f}**\n\n"
+                   f"Diferença: R$ {v_med_ferias['diferenca']:,.2f}")
+
+if v_med_abono:
+    with col_d:
+        st.success(f"**{v_med_abono['evento']}**\n\n"
+                   f"Cálculo: {v_med_abono['formula']} = **R$ {v_med_abono['calculado']:,.2f}**\n\n"
+                   f"Valor PDF: **R$ {v_med_abono['pdf']:,.2f}**\n\n"
+                   f"Diferença: R$ {v_med_abono['diferenca']:,.2f}")
