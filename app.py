@@ -5,10 +5,12 @@ Ponto de entrada principal do backend FastAPI (Motor Bwise).
 """
 
 import os
+from typing import Any
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
+from pydantic import BaseModel
 
 # Importações dos serviços de auditoria
 from services.comparador import executar_comparacao, gerar_excel
@@ -48,6 +50,18 @@ def home():
     return {"status": "Motor Bwise operando 100%!"}
 
 # ════════════════════════════════════════════════════════════
+# Modelos de requisição para geração de Excel a partir de dados
+# já calculados (permite exportar exatamente o que está filtrado
+# na tela, sem reprocessar os arquivos originais).
+# ════════════════════════════════════════════════════════════
+class ExcelRubricasRequest(BaseModel):
+    resultados: list[dict[str, Any]]
+
+class ExcelComMetaRequest(BaseModel):
+    resultados: list[dict[str, Any]]
+    meta: dict[str, Any]
+
+# ════════════════════════════════════════════════════════════
 # ROTA: AUDITORIA DE RÚBRICAS (FOLHA MENSAL)
 # ════════════════════════════════════════════════════════════
 @app.post("/api/auditoria-rubricas")
@@ -59,9 +73,16 @@ async def api_auditoria_rubricas(
         resultados = executar_comparacao(arquivo_nomeado(arquivo_lanc), arquivo_nomeado(arquivo_sist))
         if not resultados:
             raise HTTPException(status_code=400, detail="Nenhuma divergência ou dado foi processado.")
-        
-        planilha_bytes = gerar_excel(resultados)
-        
+        return {"resultados": resultados}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/auditoria-rubricas/excel")
+async def api_auditoria_rubricas_excel(payload: ExcelRubricasRequest):
+    try:
+        planilha_bytes = gerar_excel(payload.resultados)
         return Response(
             content=planilha_bytes,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -85,13 +106,39 @@ async def api_auditoria_adiantamento(
             arquivo_nomeado(arquivo_ativos),
             arquivo_nomeado(arquivo_ferias),
         )
-        
-        planilha_bytes = gerar_excel_adiantamento(resultados, meta)
-        
+        return {"resultados": resultados, "meta": meta}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/auditoria-adiantamento/excel")
+async def api_auditoria_adiantamento_excel(payload: ExcelComMetaRequest):
+    try:
+        # Igual ao comportamento original: o resumo do Excel reflete o
+        # conjunto (possivelmente filtrado na tela) que está sendo exportado,
+        # não os totais originais da conferência completa.
+        resultados = payload.resultados
+        mes_ant = payload.meta.get("mes_ant")
+        mes_atu = payload.meta.get("mes_atu")
+        isentos = ["Funcionário Novo", "Sem adiantamento (opcional)", "Não tem direito (admitido após dia 6)"]
+
+        meta_recalculada = {
+            "mes_ant": mes_ant,
+            "mes_atu": mes_atu,
+            "tot_ant": float(sum(r.get("Adiantamento Mês Anterior") or 0 for r in resultados)),
+            "tot_atu": float(sum(r.get("Adiantamento Mês Atual") or 0 for r in resultados)),
+            "total_ativos": len(resultados),
+            "total_corretos": sum(1 for r in resultados if "Certo" in str(r.get("Status", ""))),
+            "total_errados": sum(1 for r in resultados if r.get("Status") == "Errado"),
+            "total_isentos": sum(1 for r in resultados if r.get("Status") in isentos),
+        }
+
+        planilha_bytes = gerar_excel_adiantamento(resultados, meta_recalculada)
         return Response(
             content=planilha_bytes,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename=Conferencia_Adiantamento_Mes_{meta['mes_atu']}.xlsx"}
+            headers={"Content-Disposition": f"attachment; filename=Conferencia_Adiantamento_Mes_{mes_atu}.xlsx"}
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -130,8 +177,16 @@ async def api_auditoria_consignados(
             arquivo_nomeado(arquivo_recibos),
             arquivo_nomeado(arquivo_eventos),
         )
-        planilha_bytes = gerar_excel_consignados(resultados, meta)
+        return {"resultados": resultados, "meta": meta}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/auditoria-consignados/excel")
+async def api_auditoria_consignados_excel(payload: ExcelComMetaRequest):
+    try:
+        planilha_bytes = gerar_excel_consignados(payload.resultados, payload.meta)
         return Response(
             content=planilha_bytes,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

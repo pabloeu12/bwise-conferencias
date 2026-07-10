@@ -1,10 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE_URL } from "../../lib/api";
 import PassoAPasso from "../components/PassoAPasso";
 import Topbar from "../components/Topbar";
+import MetricsRow from "../components/MetricsRow";
+import DataTable, { ColunaConfig, CorConfig } from "../components/DataTable";
+
+const COLUNAS: ColunaConfig[] = [
+  { chave: "Matrícula" },
+  { chave: "Nome do funcionário" },
+  { chave: "Base de Cálculo do INSS", formato: "moeda" },
+  { chave: "Valor do INSS", formato: "moeda" },
+  { chave: "Valor do IRRF", formato: "moeda" },
+  { chave: "Férias", formato: "moeda" },
+  { chave: "Base", formato: "moeda" },
+  { chave: "Limite de Desconto (35%)", formato: "moeda" },
+  { chave: "EMPRESTIMO (EMPREGA BRASIL)", formato: "moeda" },
+  { chave: "EMPRESTIMO (LISTA DE EVENTOS DE RECIBO DE PAGAMENTO)", formato: "moeda" },
+  { chave: "Diferença (Emprega Brasil x Lista de Eventos)", formato: "moeda" },
+  { chave: "Diferença (Limite de Desconto x Lista de Eventos)", formato: "moeda" },
+  { chave: "Status" },
+  { chave: "Observação" },
+];
+
+function corPorStatus(status: string): CorConfig {
+  if (status === "Certo") return { bg: "#d4edda", text: "#155724" };
+  return { bg: "#f8d7da", text: "#721c24" };
+}
 
 export default function ConsignadosPage() {
   const router = useRouter();
@@ -12,10 +36,19 @@ export default function ConsignadosPage() {
   const [arqRecibos, setArqRecibos] = useState<File | null>(null);
   const [arqEventos, setArqEventos] = useState<File | null>(null);
   const [carregando, setCarregando] = useState(false);
+  const [baixando, setBaixando] = useState(false);
+  const [resultados, setResultados] = useState<Record<string, any>[] | null>(null);
+  const [meta, setMeta] = useState<Record<string, any> | null>(null);
+
+  const [filtroStatus, setFiltroStatus] = useState("Todos");
+  const [filtroNome, setFiltroNome] = useState("");
+  const [filtroMatricula, setFiltroMatricula] = useState("");
 
   const handleAuditarConsignados = async () => {
     if (!arqEmprega || !arqRecibos || !arqEventos) return;
     setCarregando(true);
+    setResultados(null);
+    setMeta(null);
 
     const formData = new FormData();
     formData.append("arquivo_emprega", arqEmprega);
@@ -28,16 +61,17 @@ export default function ConsignadosPage() {
         body: formData,
       });
 
-      if (!resposta.ok) throw new Error("Erro ao processar a conferência de consignados.");
+      if (!resposta.ok) {
+        const erro = await resposta.json().catch(() => null);
+        throw new Error(erro?.detail || "Erro ao processar a conferência de consignados.");
+      }
 
-      const blob = await resposta.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "Conferencia_Consignados.xlsx";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      const dados = await resposta.json();
+      setResultados(dados.resultados);
+      setMeta(dados.meta);
+      setFiltroStatus("Todos");
+      setFiltroNome("");
+      setFiltroMatricula("");
     } catch (erro: any) {
       alert(erro.message || "Erro de conexão com o motor.");
     } finally {
@@ -45,10 +79,55 @@ export default function ConsignadosPage() {
     }
   };
 
+  const resultadosFiltrados = useMemo(() => {
+    if (!resultados) return [];
+    return resultados.filter((r) => {
+      if (filtroStatus !== "Todos" && String(r["Status"]) !== filtroStatus) return false;
+      if (filtroNome.trim() && !String(r["Nome do funcionário"] ?? "").toLowerCase().includes(filtroNome.trim().toLowerCase())) return false;
+      if (filtroMatricula.trim() && !String(r["Matrícula"] ?? "").toLowerCase().includes(filtroMatricula.trim().toLowerCase())) return false;
+      return true;
+    });
+  }, [resultados, filtroStatus, filtroNome, filtroMatricula]);
+
+  const metrics = useMemo(() => {
+    if (!meta) return [];
+    return [
+      { label: "Funcionários Processados", value: meta.total_funcionarios },
+      { label: "Corretos", value: meta.total_corretos },
+      { label: "Com Divergência", value: meta.total_errados },
+      { label: "Limites 35% Ultrapassados", value: meta.limites_ultrapassados },
+    ];
+  }, [meta]);
+
+  const handleBaixarExcel = async () => {
+    if (!meta || !resultados) return;
+    setBaixando(true);
+    try {
+      const resposta = await fetch(`${API_BASE_URL}/api/auditoria-consignados/excel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resultados, meta }),
+      });
+      if (!resposta.ok) throw new Error("Erro ao gerar a planilha.");
+      const blob = await resposta.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Resultado_Conferencia_Consignados.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (erro: any) {
+      alert(erro.message || "Erro ao baixar a planilha.");
+    } finally {
+      setBaixando(false);
+    }
+  };
+
   return (
     <main className="flex-1 flex flex-col overflow-y-auto">
       <Topbar />
-      <div className="max-w-5xl mx-auto w-full flex flex-col p-12">
+      <div className="max-w-6xl mx-auto w-full flex flex-col p-12">
         <div className="mb-8 text-left">
           <button onClick={() => router.push("/")} className="inline-flex items-center text-bwise-verde-escuro font-bold hover:text-bwise-verde transition-colors mb-4">
             <span className="mr-2">←</span> Voltar para o Painel
@@ -130,6 +209,58 @@ export default function ConsignadosPage() {
             </button>
           </div>
         </div>
+
+        {resultados && meta && (
+          <div className="bg-bwise-superficie rounded-3xl shadow-xl border border-bwise-borda p-8">
+            <h3 className="text-xl font-bold text-bwise-texto mb-4">Resumo Geral</h3>
+            <MetricsRow metrics={metrics} />
+
+            <h3 className="text-lg font-bold text-bwise-texto mb-3">Filtros</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+              <select
+                value={filtroStatus}
+                onChange={(e) => setFiltroStatus(e.target.value)}
+                className="border border-bwise-borda rounded-lg px-3 py-2 text-sm bg-bwise-superficie text-bwise-texto"
+              >
+                <option value="Todos">Todos</option>
+                <option value="Certo">Certo</option>
+                <option value="Errado">Errado</option>
+              </select>
+              <input
+                value={filtroNome}
+                onChange={(e) => setFiltroNome(e.target.value)}
+                placeholder="Funcionário"
+                className="border border-bwise-borda rounded-lg px-3 py-2 text-sm bg-bwise-superficie text-bwise-texto placeholder:text-bwise-texto-sec"
+              />
+              <input
+                value={filtroMatricula}
+                onChange={(e) => setFiltroMatricula(e.target.value)}
+                placeholder="Matrícula"
+                className="border border-bwise-borda rounded-lg px-3 py-2 text-sm bg-bwise-superficie text-bwise-texto placeholder:text-bwise-texto-sec"
+              />
+            </div>
+            <p className="text-xs text-bwise-texto-sec mb-4">
+              A exibir {resultadosFiltrados.length} de {resultados.length} funcionários
+            </p>
+
+            <DataTable
+              colunas={COLUNAS}
+              linhas={resultadosFiltrados}
+              colunaComCorPropria="Status"
+              corCelula={(valor) => corPorStatus(String(valor))}
+            />
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={handleBaixarExcel}
+                disabled={baixando}
+                className="px-6 py-3 bg-bwise-verde hover:bg-bwise-verde-escuro disabled:bg-bwise-borda disabled:text-bwise-texto-sec text-[#0B2015] font-bold rounded-xl shadow transition-colors"
+              >
+                {baixando ? "Gerando planilha..." : "Baixar Conferência de Consignados"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

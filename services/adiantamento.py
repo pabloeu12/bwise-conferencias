@@ -122,8 +122,8 @@ def executar_conferencia_adiantamento(file_eventos, file_ativos, file_ferias) ->
     if len(meses_disponiveis) < 2:
         raise ValueError("A planilha de EVENTOS precisa de dados de 2 meses distintos (Anterior e Atual).")
         
-    mes_anterior = meses_disponiveis[0]
-    mes_atual = meses_disponiveis[1]
+    mes_anterior = int(meses_disponiveis[0])
+    mes_atual = int(meses_disponiveis[1])
 
     df_ev_100 = df_ev[df_ev['Cod_Evento'] == 100]
     tot_ant_global = df_ev_100[df_ev_100['Mes'] == mes_anterior]['Valor_Provento'].sum()

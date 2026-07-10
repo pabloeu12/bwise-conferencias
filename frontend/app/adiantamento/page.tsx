@@ -1,10 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE_URL } from "../../lib/api";
 import PassoAPasso from "../components/PassoAPasso";
 import Topbar from "../components/Topbar";
+import MetricsRow from "../components/MetricsRow";
+import DataTable, { ColunaConfig, CorConfig } from "../components/DataTable";
+
+const COLUNAS: ColunaConfig[] = [
+  { chave: "Matrícula" },
+  { chave: "Funcionário" },
+  { chave: "Data de Admissão" },
+  { chave: "Categoria" },
+  { chave: "Salário Base", formato: "moeda" },
+  { chave: "Adiantamento Mês Anterior", formato: "moeda" },
+  { chave: "Adiantamento Mês Atual", formato: "moeda" },
+  { chave: "Diferença Entre Meses", formato: "moeda" },
+  { chave: "Status" },
+  { chave: "Motivo / Erros" },
+];
+
+const STATUS_OPCOES = [
+  "Todos",
+  "Certo",
+  "Certo (Férias)",
+  "Errado",
+  "Funcionário Novo",
+  "Sem adiantamento (opcional)",
+  "Não tem direito (admitido após dia 6)",
+];
+
+const ISENTOS = ["Funcionário Novo", "Sem adiantamento (opcional)", "Não tem direito (admitido após dia 6)"];
+
+function corPorStatus(status: string): CorConfig | null {
+  if (status.includes("Certo")) return { bg: "#d4edda", text: "#155724" };
+  if (status === "Errado") return { bg: "#f8d7da", text: "#721c24" };
+  if (status === "Funcionário Novo") return { bg: "#cce5ff", text: "#004085" };
+  if (status === "Não tem direito (admitido após dia 6)") return { bg: "#fff3cd", text: "#856404" };
+  return { bg: "#e2e3e5", text: "#383d41" };
+}
 
 export default function AdiantamentoPage() {
   const router = useRouter();
@@ -12,10 +47,19 @@ export default function AdiantamentoPage() {
   const [arqAtivos, setArqAtivos] = useState<File | null>(null);
   const [arqFerias, setArqFerias] = useState<File | null>(null);
   const [carregando, setCarregando] = useState(false);
+  const [baixando, setBaixando] = useState(false);
+  const [resultados, setResultados] = useState<Record<string, any>[] | null>(null);
+  const [meta, setMeta] = useState<Record<string, any> | null>(null);
+
+  const [filtroNome, setFiltroNome] = useState("");
+  const [filtroMatricula, setFiltroMatricula] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState("Todos");
 
   const handleAuditarAdiantamento = async () => {
     if (!arqEventos || !arqAtivos || !arqFerias) return;
     setCarregando(true);
+    setResultados(null);
+    setMeta(null);
 
     const formData = new FormData();
     formData.append("arquivo_eventos", arqEventos);
@@ -28,16 +72,17 @@ export default function AdiantamentoPage() {
         body: formData,
       });
 
-      if (!resposta.ok) throw new Error("Erro ao processar auditoria de adiantamentos.");
+      if (!resposta.ok) {
+        const erro = await resposta.json().catch(() => null);
+        throw new Error(erro?.detail || "Erro ao processar auditoria de adiantamentos.");
+      }
 
-      const blob = await resposta.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "Conferencia_Adiantamento.xlsx";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      const dados = await resposta.json();
+      setResultados(dados.resultados);
+      setMeta(dados.meta);
+      setFiltroNome("");
+      setFiltroMatricula("");
+      setFiltroStatus("Todos");
     } catch (erro: any) {
       alert(erro.message || "Erro de conexão com o motor.");
     } finally {
@@ -45,10 +90,59 @@ export default function AdiantamentoPage() {
     }
   };
 
+  const resultadosFiltrados = useMemo(() => {
+    if (!resultados) return [];
+    return resultados.filter((r) => {
+      if (filtroStatus !== "Todos" && String(r["Status"]) !== filtroStatus) return false;
+      if (filtroNome.trim() && !String(r["Funcionário"] ?? "").toLowerCase().includes(filtroNome.trim().toLowerCase())) return false;
+      if (filtroMatricula.trim() && !String(r["Matrícula"] ?? "").toLowerCase().includes(filtroMatricula.trim().toLowerCase())) return false;
+      return true;
+    });
+  }, [resultados, filtroStatus, filtroNome, filtroMatricula]);
+
+  const metrics = useMemo(() => {
+    if (!resultados) return [];
+    const ativos = resultados.length;
+    const corretos = resultados.filter((r) => String(r["Status"]).includes("Certo")).length;
+    const divergentes = resultados.filter((r) => r["Status"] === "Errado").length;
+    const isentos = resultados.filter((r) => ISENTOS.includes(String(r["Status"]))).length;
+    return [
+      { label: "Ativos", value: ativos },
+      { label: "Corretos", value: corretos },
+      { label: "Com Divergência", value: divergentes },
+      { label: "Isentos (Novos/Opcional)", value: isentos },
+    ];
+  }, [resultados]);
+
+  const handleBaixarExcel = async () => {
+    if (!meta) return;
+    setBaixando(true);
+    try {
+      const resposta = await fetch(`${API_BASE_URL}/api/auditoria-adiantamento/excel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resultados: resultadosFiltrados, meta }),
+      });
+      if (!resposta.ok) throw new Error("Erro ao gerar a planilha.");
+      const blob = await resposta.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Conferencia_Adiantamentos_Mes_${meta.mes_atu}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (erro: any) {
+      alert(erro.message || "Erro ao baixar a planilha.");
+    } finally {
+      setBaixando(false);
+    }
+  };
+
   return (
     <main className="flex-1 flex flex-col overflow-y-auto">
       <Topbar />
-      <div className="max-w-5xl mx-auto w-full flex flex-col p-12">
+      <div className="max-w-6xl mx-auto w-full flex flex-col p-12">
         <div className="mb-8 text-left">
           <button onClick={() => router.push("/")} className="inline-flex items-center text-bwise-verde-escuro font-bold hover:text-bwise-verde transition-colors mb-4">
             <span className="mr-2">←</span> Voltar para o Painel
@@ -134,6 +228,61 @@ export default function AdiantamentoPage() {
             </button>
           </div>
         </div>
+
+        {resultados && meta && (
+          <div className="bg-bwise-superficie rounded-3xl shadow-xl border border-bwise-borda p-8">
+            <h3 className="text-xl font-bold text-bwise-texto mb-1">
+              Comparando Mês {meta.mes_ant} x Mês {meta.mes_atu}
+            </h3>
+            <p className="text-sm text-bwise-texto-sec mb-4">Dados processados com sucesso.</p>
+            <MetricsRow metrics={metrics} />
+
+            <h3 className="text-lg font-bold text-bwise-texto mb-3">Filtros de Busca</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+              <input
+                value={filtroNome}
+                onChange={(e) => setFiltroNome(e.target.value)}
+                placeholder="Buscar por Nome"
+                className="border border-bwise-borda rounded-lg px-3 py-2 text-sm bg-bwise-superficie text-bwise-texto placeholder:text-bwise-texto-sec"
+              />
+              <input
+                value={filtroMatricula}
+                onChange={(e) => setFiltroMatricula(e.target.value)}
+                placeholder="Buscar por Matrícula"
+                className="border border-bwise-borda rounded-lg px-3 py-2 text-sm bg-bwise-superficie text-bwise-texto placeholder:text-bwise-texto-sec"
+              />
+              <select
+                value={filtroStatus}
+                onChange={(e) => setFiltroStatus(e.target.value)}
+                className="border border-bwise-borda rounded-lg px-3 py-2 text-sm bg-bwise-superficie text-bwise-texto"
+              >
+                {STATUS_OPCOES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <p className="text-xs text-bwise-texto-sec mb-4">
+              A exibir {resultadosFiltrados.length} de {resultados.length} funcionários
+            </p>
+
+            <DataTable
+              colunas={COLUNAS}
+              linhas={resultadosFiltrados}
+              colunaComCorPropria="Status"
+              corCelula={(valor) => corPorStatus(String(valor))}
+            />
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={handleBaixarExcel}
+                disabled={baixando || resultadosFiltrados.length === 0}
+                className="px-6 py-3 bg-bwise-verde hover:bg-bwise-verde-escuro disabled:bg-bwise-borda disabled:text-bwise-texto-sec text-[#0B2015] font-bold rounded-xl shadow transition-colors"
+              >
+                {baixando ? "Gerando planilha..." : "Baixar Tabela de Conferência (Excel Formatado)"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
