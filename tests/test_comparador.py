@@ -11,6 +11,7 @@ Testes automatizados da verificação bidirecional de rubricas
  8. Coluna com vários códigos                        -> soma sem falso alerta
  9. Código repetido no sistema                       -> soma consolidada
 10. Formatos de arquivo (XLSX e CSV)
+11. Nome do funcionário obtido via Planilha do Sistema quando ausente nos lançamentos
 
 Executar com:  .venv\\Scripts\\python -m unittest tests.test_comparador -v
 """
@@ -158,6 +159,37 @@ class TestFormatosDeArquivo(unittest.TestCase):
         resultados = executar_comparacao(_csv(self.LANC_SIMPLES), _csv(self.SIST_SIMPLES))
         self.assertEqual(len(resultados), 1)
         self.assertEqual(resultados[0]["Status"], "OK_REFERENCIA")
+
+
+class TestNomeFuncionarioViaSistema(unittest.TestCase):
+    """O nome do funcionário deve ser preenchido a partir da Planilha do Sistema
+    quando a matrícula não existir (ou estiver sem nome) na Planilha de Lançamentos,
+    desde que o Sistema tenha uma coluna reconhecível de nome de funcionário."""
+
+    LANC = [
+        ["Matricula", "Nome", "Salario Base (100)"],
+        [1, "FUNCIONARIO UM", 1000.00],
+    ]
+    SIST = [
+        ["Matricula", "Funcionario", "Nome Evento", "Cod Evento",
+         "Referencia", "Valor Provento", "Valor Desconto"],
+        [1, "FUNCIONARIO UM DA FOLHA", "Salario Base", 100, 1000.00, 0, 0],
+        [99, "FUNCIONARIO NOVENTA E NOVE", "Comissao Especial", 300, 500.00, 0, 0],
+    ]
+
+    @classmethod
+    def setUpClass(cls):
+        cls.resultados = executar_comparacao(_xlsx(cls.LANC), _xlsx(cls.SIST))
+        cls.por_mat = {r["Matrícula"]: r for r in cls.resultados}
+
+    def test_nome_preenchido_via_sistema_quando_ausente_nos_lancamentos(self):
+        r = self.por_mat[99]
+        self.assertEqual(r["Status"], "AUSENTE_NOS_LANCAMENTOS")
+        self.assertEqual(r["Funcionário"], "FUNCIONARIO NOVENTA E NOVE")
+
+    def test_nome_dos_lancamentos_tem_prioridade_quando_disponivel(self):
+        r = self.por_mat[1]
+        self.assertEqual(r["Funcionário"], "FUNCIONARIO UM")
 
 
 class TestNormalizacaoCodigoEvento(unittest.TestCase):

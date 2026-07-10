@@ -141,14 +141,15 @@ def ler_lancamentos(arquivo) -> tuple[dict, dict, list]:
 
     return lanc_por_mat, nomes, colunas
 
-def ler_sistema(arquivo) -> dict:
+def ler_sistema(arquivo) -> tuple[dict, dict]:
     dados = _carregar_matriz(arquivo)
 
     if not dados:
         raise ValueError("Planilha do sistema está vazia.")
 
     inicio_dados, idxs = _mapear_colunas_sistema(dados)
-    sistema = {}
+    idx_func = idxs.get("func")
+    sistema, nomes_sistema = {}, {}
     for linha in dados[inicio_dados:]:
         if not linha or idxs["mat"] >= len(linha) or linha[idxs["mat"]] is None:
             continue
@@ -163,6 +164,12 @@ def ler_sistema(arquivo) -> dict:
             continue
         if not cod:
             continue
+
+        if idx_func is not None and idx_func < len(linha) and not nomes_sistema.get(mat):
+            nome_func = limpar_str(linha[idx_func])
+            if nome_func:
+                nomes_sistema[mat] = nome_func
+
         sistema.setdefault(mat, {})
         if cod in sistema[mat]:
             sistema[mat][cod]["ref"]  += ref
@@ -171,7 +178,7 @@ def ler_sistema(arquivo) -> dict:
         else:
             sistema[mat][cod] = {"nome": nome, "ref": ref, "prov": prov, "desc": desc}
 
-    return sistema
+    return sistema, nomes_sistema
 
 def _mapear_colunas_sistema(dados) -> tuple[int, dict]:
     aliases = {
@@ -182,6 +189,12 @@ def _mapear_colunas_sistema(dados) -> tuple[int, dict]:
         "prov": ("valor provento", "provento", "provento sistema"),
         "desc": ("valor desconto", "desconto", "desconto sistema"),
     }
+    # Nome do funcionário é opcional: quando existir, serve como fonte alternativa
+    # para preencher a coluna "Funcionário" de matrículas ausentes na Planilha de Lançamentos.
+    aliases_func = (
+        "funcionario", "nome funcionario", "nome do funcionario",
+        "colaborador", "nome colaborador", "empregado", "nome empregado",
+    )
 
     for pos, cabecalho in enumerate(dados):
         normalizados = {
@@ -196,10 +209,11 @@ def _mapear_colunas_sistema(dados) -> tuple[int, dict]:
                 break
             idxs[campo] = idx
         else:
+            idxs["func"] = next((normalizados[opcao] for opcao in aliases_func if opcao in normalizados), None)
             return pos + 1, idxs
 
     if dados and len(dados[0]) >= 7:
-        return 1, {"mat": 0, "cod": 2, "nome": 3, "ref": 4, "prov": 5, "desc": 6}
+        return 1, {"mat": 0, "func": 1, "cod": 2, "nome": 3, "ref": 4, "prov": 5, "desc": 6}
 
     raise ValueError("Não foi possível identificar as colunas da planilha do sistema.")
 
@@ -209,7 +223,7 @@ def _mapear_colunas_sistema(dados) -> tuple[int, dict]:
 
 def executar_comparacao(arquivo_lanc, arquivo_sist) -> list[dict]:
     lanc_por_mat, nomes, colunas = ler_lancamentos(arquivo_lanc)
-    sistema = ler_sistema(arquivo_sist)
+    sistema, nomes_sistema = ler_sistema(arquivo_sist)
     resultados = []
 
     # Códigos que aparecem em algum cabeçalho da Planilha de Lançamentos
@@ -222,7 +236,7 @@ def executar_comparacao(arquivo_lanc, arquivo_sist) -> list[dict]:
     processados = set()
 
     for mat, valores in lanc_por_mat.items():
-        nome_func   = nomes.get(mat, "")
+        nome_func   = nomes.get(mat) or nomes_sistema.get(mat, "")
         ev_sistema  = sistema.get(mat)
 
         for col in colunas:
@@ -286,7 +300,7 @@ def executar_comparacao(arquivo_lanc, arquivo_sist) -> list[dict]:
     # Todo código com valor efetivo no sistema precisa estar previsto (e com
     # valor diferente de zero) na Planilha de Lançamentos para a mesma matrícula.
     for mat, eventos in sistema.items():
-        nome_func = nomes.get(mat, "")
+        nome_func = nomes.get(mat) or nomes_sistema.get(mat, "")
 
         for cod, ev in eventos.items():
             if (mat, cod) in processados:
