@@ -231,9 +231,18 @@ export default function AdiantamentoPage() {
 
         {resultados && meta && (
           <div className="bg-bwise-superficie rounded-3xl shadow-xl border border-bwise-borda p-8">
-            <h3 className="text-xl font-bold text-bwise-texto mb-1">
-              Comparando Mês {meta.mes_ant} x Mês {meta.mes_atu}
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-1">
+              <h3 className="text-xl font-bold text-bwise-texto">
+                Comparando Mês {meta.mes_ant} x Mês {meta.mes_atu}
+              </h3>
+              <button
+                onClick={handleBaixarExcel}
+                disabled={baixando || resultadosFiltrados.length === 0}
+                className="px-6 py-3 bg-bwise-verde hover:bg-bwise-verde-escuro disabled:bg-bwise-borda disabled:text-bwise-texto-sec text-[#0B2015] font-bold rounded-xl shadow transition-colors shrink-0"
+              >
+                {baixando ? "Gerando planilha..." : "Baixar Tabela de Conferência (Excel Formatado)"}
+              </button>
+            </div>
             <p className="text-sm text-bwise-texto-sec mb-4">Dados processados com sucesso.</p>
             <MetricsRow metrics={metrics} />
 
@@ -271,16 +280,6 @@ export default function AdiantamentoPage() {
               colunaComCorPropria="Status"
               corCelula={(valor) => corPorStatus(String(valor))}
             />
-
-            <div className="flex justify-end mt-6">
-              <button
-                onClick={handleBaixarExcel}
-                disabled={baixando || resultadosFiltrados.length === 0}
-                className="px-6 py-3 bg-bwise-verde hover:bg-bwise-verde-escuro disabled:bg-bwise-borda disabled:text-bwise-texto-sec text-[#0B2015] font-bold rounded-xl shadow transition-colors"
-              >
-                {baixando ? "Gerando planilha..." : "Baixar Tabela de Conferência (Excel Formatado)"}
-              </button>
-            </div>
           </div>
         )}
       </div>

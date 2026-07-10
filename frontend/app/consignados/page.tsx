@@ -212,7 +212,16 @@ export default function ConsignadosPage() {
 
         {resultados && meta && (
           <div className="bg-bwise-superficie rounded-3xl shadow-xl border border-bwise-borda p-8">
-            <h3 className="text-xl font-bold text-bwise-texto mb-4">Resumo Geral</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <h3 className="text-xl font-bold text-bwise-texto">Resumo Geral</h3>
+              <button
+                onClick={handleBaixarExcel}
+                disabled={baixando}
+                className="px-6 py-3 bg-bwise-verde hover:bg-bwise-verde-escuro disabled:bg-bwise-borda disabled:text-bwise-texto-sec text-[#0B2015] font-bold rounded-xl shadow transition-colors shrink-0"
+              >
+                {baixando ? "Gerando planilha..." : "Baixar Conferência de Consignados"}
+              </button>
+            </div>
             <MetricsRow metrics={metrics} />
 
             <h3 className="text-lg font-bold text-bwise-texto mb-3">Filtros</h3>
@@ -249,16 +258,6 @@ export default function ConsignadosPage() {
               colunaComCorPropria="Status"
               corCelula={(valor) => corPorStatus(String(valor))}
             />
-
-            <div className="flex justify-end mt-6">
-              <button
-                onClick={handleBaixarExcel}
-                disabled={baixando}
-                className="px-6 py-3 bg-bwise-verde hover:bg-bwise-verde-escuro disabled:bg-bwise-borda disabled:text-bwise-texto-sec text-[#0B2015] font-bold rounded-xl shadow transition-colors"
-              >
-                {baixando ? "Gerando planilha..." : "Baixar Conferência de Consignados"}
-              </button>
-            </div>
           </div>
         )}
       </div>

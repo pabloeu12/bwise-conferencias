@@ -207,10 +207,11 @@ def executar_conferencia_adiantamento(file_eventos, file_ativos, file_ferias) ->
                     if val_atu > 0:
                         erros.append(f"Recebeu indevidamente (Trabalhou apenas {dias_trab_atu} dias no mês)")
 
-            if direito_ant and direito_atu:
-                if esperado_ant == esperado_atu:
-                    if round(val_ant, 2) != round(val_atu, 2): 
-                        erros.append("Divergência de valor entre os meses")
+            # Não comparamos mais o valor do mês atual contra o mês anterior:
+            # o cálculo de "esperado_atu" acima já garante que o valor pago bate
+            # com os 40% do salário atual (considerando os dias de férias do mês).
+            # Se bateu, está certo — mesmo que o mês anterior seja diferente por
+            # causa de um reajuste salarial no meio do caminho.
 
             if len(erros) > 0:
                 status_final = "Errado"
