@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE_URL } from "../../lib/api";
+import PassoAPasso from "../components/PassoAPasso";
 
 export default function FeriasPage() {
   const router = useRouter();
@@ -51,6 +52,35 @@ export default function FeriasPage() {
           <h2 className="text-4xl font-extrabold text-bwise-texto tracking-tight">Auditoria de Recibo de Férias</h2>
           <p className="text-bwise-texto-sec mt-2 text-lg">Valide as médias de variáveis do período aquisitivo e os cálculos de terço constitucional aplicando reajustes salariais históricos.</p>
         </div>
+
+        <PassoAPasso titulo="Como extrair os documentos do sistema (Passo a Passo)">
+          <div>
+            <h4 className="font-bold text-bwise-texto mb-2">1. RECIBO DE FÉRIAS (PDF)</h4>
+            <p className="mb-2"><strong>Caminho:</strong> Férias ➔ Controle de Período Aquisitivo e Concessivo ➔ Impressão de Documentos...</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Clicar em <strong>Avançar</strong> ➔ selecionar funcionário ➔ selecionar o último período de férias ➔ <strong>Recibo de Férias</strong>.</li>
+              <li>Salvar o arquivo no formato <strong>PDF</strong>.</li>
+            </ul>
+          </div>
+          <hr className="border-bwise-borda" />
+          <div>
+            <h4 className="font-bold text-bwise-texto mb-2">2. LISTA DE EVENTOS DE RECIBO DE PAGAMENTO</h4>
+            <ul className="list-disc list-inside space-y-1">
+              <li><strong>Competência Inicial e Competência Final:</strong> selecionar o período aquisitivo.</li>
+              <li><strong>Tipo de Recibo:</strong> 1 Normal.</li>
+              <li>Clicar em <strong>Filtrar</strong> e salvar o arquivo.</li>
+            </ul>
+          </div>
+          <hr className="border-bwise-borda" />
+          <div>
+            <h4 className="font-bold text-bwise-texto mb-2">3. HISTÓRICO DE CARGOS E SALÁRIOS</h4>
+            <p className="mb-2"><strong>Caminho:</strong> Folha de Pagamento ➔ Cadastros ➔ Cargos ➔ Lista de Histórico de Cargos e Salários...</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li><strong>Situação do funcionário:</strong> Ativos.</li>
+              <li>Salvar o arquivo.</li>
+            </ul>
+          </div>
+        </PassoAPasso>
 
         <div className="bg-bwise-superficie rounded-3xl shadow-xl border border-bwise-borda p-8 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

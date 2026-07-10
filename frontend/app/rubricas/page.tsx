@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE_URL } from "../../lib/api";
+import PassoAPasso from "../components/PassoAPasso";
 
 export default function RubricasPage() {
   const router = useRouter();
@@ -51,6 +52,31 @@ export default function RubricasPage() {
           <h2 className="text-4xl font-extrabold text-bwise-texto tracking-tight">Auditoria de Rubricas</h2>
           <p className="text-bwise-texto-sec mt-2 text-lg">Faça o upload dos dois arquivos necessários para realizar os cruzamentos automatizados.</p>
         </div>
+
+        <PassoAPasso titulo="Como extrair as planilhas do Sistema (Passo a Passo)">
+          <div>
+            <h4 className="font-bold text-bwise-texto mb-2">PLANILHA DE LANÇAMENTOS</h4>
+            <ul className="list-disc list-inside space-y-1">
+              <li><strong>Origem:</strong> recebemos a planilha da Maçaneiro diretamente via e-mail.</li>
+              <li>
+                <strong>Divisão:</strong> o arquivo original costuma vir dividido em três partes (<strong>ADM, Motoristas e Manobra</strong>).
+                <span className="block text-xs mt-1 ml-4">Nota: você pode optar por unificar as abas/arquivos em uma só ou realizar o processo de conferência de forma separada no sistema.</span>
+              </li>
+              <li>
+                <strong>Ajustes obrigatórios antes de anexar:</strong>
+                <ul className="list-[circle] list-inside ml-4 mt-1 space-y-1">
+                  <li>Remover completamente todas as fórmulas e formatações de células.</li>
+                  <li>Garantir que a <strong>primeira linha</strong> da planilha seja estritamente o cabeçalho, e as linhas seguintes contenham apenas os dados.</li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+          <hr className="border-bwise-borda" />
+          <div>
+            <h4 className="font-bold text-bwise-texto mb-2">LISTA DE EVENTOS DE RECIBO DE PAGAMENTO (Sistema)</h4>
+            <p><strong>Caminho para extração no sistema:</strong> Folha de Pagamento ➔ Folha de Pagamento ➔ Lista de Eventos de Recibos de Pagamento...</p>
+          </div>
+        </PassoAPasso>
 
         <div className="bg-bwise-superficie rounded-3xl shadow-xl border border-bwise-borda p-8 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

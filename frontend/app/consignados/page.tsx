@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE_URL } from "../../lib/api";
+import PassoAPasso from "../components/PassoAPasso";
 
 export default function ConsignadosPage() {
   const router = useRouter();
@@ -53,6 +54,33 @@ export default function ConsignadosPage() {
           <h2 className="text-4xl font-extrabold text-bwise-texto tracking-tight">Conferência de Consignados</h2>
           <p className="text-bwise-texto-sec mt-2 text-lg">Suba os três arquivos para validar os descontos de empréstimos consignados e o limite de 35% da margem.</p>
         </div>
+
+        <PassoAPasso titulo="Como extrair os documentos do sistema (Passo a Passo)">
+          <div>
+            <h4 className="font-bold text-bwise-texto mb-2">1. EMPREGA BRASIL</h4>
+            <p className="italic">Espaço reservado para inclusão dos passos futuramente.</p>
+          </div>
+          <hr className="border-bwise-borda" />
+          <div>
+            <h4 className="font-bold text-bwise-texto mb-2">2. LISTA DE RECIBO DE PAGAMENTO</h4>
+            <p className="mb-2"><strong>Caminho:</strong> Folha de Pagamento ➔ Folha de Pagamento ➔ Lista de Recibos de Pagamento...</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li><strong>Competência Inicial e Competência Final:</strong> selecionar o mês atual.</li>
+              <li><strong>Tipo de Recibo:</strong> 1 Normal.</li>
+              <li>Clique em <strong>Filtrar</strong> e salve o arquivo nos formatos <strong>.CSV</strong>, <strong>.XLS</strong> ou <strong>.XLSX</strong>.</li>
+            </ul>
+          </div>
+          <hr className="border-bwise-borda" />
+          <div>
+            <h4 className="font-bold text-bwise-texto mb-2">3. LISTA DE EVENTOS DE PAGAMENTO</h4>
+            <p className="mb-2"><strong>Caminho:</strong> Folha de Pagamento ➔ Folha de Pagamento ➔ Lista de Eventos de Recibos de Pagamento...</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li><strong>Competência Inicial e Competência Final:</strong> selecionar o mês atual.</li>
+              <li><strong>Tipo de Recibo:</strong> 1 Normal.</li>
+              <li>Clique em <strong>Filtrar</strong> e salve o arquivo nos formatos <strong>.CSV</strong>, <strong>.XLS</strong> ou <strong>.XLSX</strong>.</li>
+            </ul>
+          </div>
+        </PassoAPasso>
 
         <div className="bg-bwise-superficie rounded-3xl shadow-xl border border-bwise-borda p-8 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

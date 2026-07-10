@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE_URL } from "../../lib/api";
+import PassoAPasso from "../components/PassoAPasso";
 
 export default function AdiantamentoPage() {
   const router = useRouter();
@@ -53,6 +54,37 @@ export default function AdiantamentoPage() {
           <h2 className="text-4xl font-extrabold text-bwise-texto tracking-tight">Auditoria de Adiantamento Salarial</h2>
           <p className="text-bwise-texto-sec mt-2 text-lg">Suba as planilhas para auditar a proporcionalidade matemática exata e gerar relatórios executivos.</p>
         </div>
+
+        <PassoAPasso titulo="Como extrair as planilhas do KMM (Passo a Passo)">
+          <div>
+            <h4 className="font-bold text-bwise-texto mb-2">1. LISTA DE EVENTOS DE RECIBO DE PAGAMENTO</h4>
+            <p className="mb-2"><strong>Caminho:</strong> Folha de Pagamento ➔ Folha de Pagamento ➔ Lista de Eventos de Recibos de Pagamento...</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li><strong>Competência Inicial:</strong> último adiantamento processado (mês anterior).</li>
+              <li><strong>Competência Final:</strong> adiantamento atual que está validando (mês atual).</li>
+              <li><strong>Tipo de Recibo:</strong> 2 Adiantamento.</li>
+              <li>Clicar em <strong>&quot;Filtrar&quot;</strong> e salvar.</li>
+            </ul>
+          </div>
+          <hr className="border-bwise-borda" />
+          <div>
+            <h4 className="font-bold text-bwise-texto mb-2">2. LISTA DE FUNCIONÁRIOS ATIVOS</h4>
+            <p className="mb-2"><strong>Caminho:</strong> Folha de Pagamento ➔ Funcionários ➔ Registro...</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Clicar em <strong>&quot;Listar...&quot;</strong>.</li>
+              <li><strong>Situação:</strong> Ativos.</li>
+              <li>Clicar em <strong>&quot;Filtrar&quot;</strong> e salvar.</li>
+            </ul>
+          </div>
+          <hr className="border-bwise-borda" />
+          <div>
+            <h4 className="font-bold text-bwise-texto mb-2">3. LISTA DE PERÍODOS AQUISITIVOS E CONCESSIVOS (FÉRIAS)</h4>
+            <p className="mb-2"><strong>Caminho:</strong> Folha de Pagamento ➔ Férias ➔ Lista de Períodos Aquisitivos e Concessivos...</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Clicar em <strong>&quot;Filtrar&quot;</strong> e salvar.</li>
+            </ul>
+          </div>
+        </PassoAPasso>
 
         <div className="bg-bwise-superficie rounded-3xl shadow-xl border border-bwise-borda p-8 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
