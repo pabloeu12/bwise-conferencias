@@ -6,6 +6,64 @@ import { API_BASE_URL } from "../../lib/api";
 import PassoAPasso from "../components/PassoAPasso";
 import Topbar from "../components/Topbar";
 
+function formatarMoeda(valor: number) {
+  return `R$ ${valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+}
+
+/** Card de verificação: mostra o valor real do recibo em destaque e um
+ * selo bem visível dizendo se o cálculo do sistema bateu com esse valor. */
+function CardVerificacao({ v, tema }: { v: any; tema: "neutro" | "verde" }) {
+  const bate = Math.abs(v.diferenca) < 0.01;
+  const claro = tema === "verde";
+
+  return (
+    <div
+      className={`border rounded-2xl p-6 ${
+        claro ? "border-bwise-verde/20 bg-bwise-verde-claro/40" : "border-bwise-borda bg-bwise-fundo"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <span
+          className={`text-xs font-bold px-2.5 py-1 rounded-md ${
+            claro ? "bg-bwise-verde-claro text-bwise-verde-escuro" : "bg-bwise-borda text-bwise-texto"
+          }`}
+        >
+          {v.evento}
+        </span>
+        <span
+          className={`text-xs font-extrabold px-3 py-1.5 rounded-full ${
+            bate ? "bg-bwise-verde text-[#0B2015]" : "bg-rose-500 text-white"
+          }`}
+        >
+          {bate ? "✅ CONFERE" : "⚠️ DIVERGE DO SISTEMA"}
+        </span>
+      </div>
+
+      <p className="text-sm font-bold text-bwise-texto-sec mt-3">
+        Fórmula: <span className="text-bwise-texto font-mono">{v.formula}</span>
+      </p>
+
+      <div className="mt-4 pt-4 border-t border-bwise-borda text-center">
+        <p className="text-xs text-bwise-texto-sec font-bold uppercase tracking-wide">Valor Real (Recibo)</p>
+        <p className="text-3xl font-black text-bwise-texto mt-1">{formatarMoeda(v.pdf)}</p>
+      </div>
+
+      <div className="flex justify-between items-center mt-4 pt-3 border-t border-bwise-borda text-sm">
+        <div>
+          <p className="text-xs text-bwise-texto-sec font-bold">CÁLCULO DO SISTEMA</p>
+          <p className="font-bold text-bwise-texto">{formatarMoeda(v.calculado)}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-bwise-texto-sec font-bold">DIFERENÇA</p>
+          <p className={`font-black ${bate ? "text-bwise-verde-escuro" : "text-rose-600"}`}>
+            {formatarMoeda(v.diferenca)}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function FeriasPage() {
   const router = useRouter();
   const [pdfFerias, setPdfFerias] = useState<File | null>(null);
@@ -153,15 +211,7 @@ export default function FeriasPage() {
               <h3 className="text-xl font-bold text-bwise-texto mb-4">1. Verificação de Férias e Abono Base</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {resultado.verificacoes_base.map((v: any, idx: number) => (
-                  <div key={idx} className="border border-bwise-borda rounded-2xl p-6 bg-bwise-fundo">
-                    <span className="text-xs font-bold bg-bwise-borda px-2.5 py-1 rounded-md text-bwise-texto">{v.evento}</span>
-                    <p className="text-sm font-bold text-bwise-texto-sec mt-3">Fórmula: <span className="text-bwise-texto font-mono">{v.formula}</span></p>
-                    <div className="flex justify-between items-center mt-4 pt-4 border-t border-bwise-borda">
-                      <div><p className="text-xs text-bwise-texto-sec font-bold">CÁLCULO SISTEMA</p><p className="text-base font-extrabold text-bwise-texto">R$ {v.calculado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p></div>
-                      <div><p className="text-xs text-bwise-texto-sec font-bold">VALOR NO PDF</p><p className="text-base font-extrabold text-bwise-texto">R$ {v.pdf.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p></div>
-                      <div><p className="text-xs text-bwise-texto-sec font-bold">DIFERENÇA</p><p className={`text-base font-black ${v.diferenca === 0 ? 'text-bwise-verde-escuro' : 'text-rose-600'}`}>R$ {v.diferenca.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p></div>
-                    </div>
-                  </div>
+                  <CardVerificacao key={idx} v={v} tema="neutro" />
                 ))}
               </div>
             </div>
@@ -185,15 +235,7 @@ export default function FeriasPage() {
               {/* Resultados das Médias */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {resultado.verificacoes_medias.map((v: any, idx: number) => (
-                  <div key={idx} className="border border-bwise-verde/20 rounded-2xl p-6 bg-bwise-verde-claro/40">
-                    <span className="text-xs font-bold bg-bwise-verde-claro px-2.5 py-1 rounded-md text-bwise-verde-escuro">{v.evento}</span>
-                    <p className="text-sm font-bold text-bwise-texto-sec mt-3">Fórmula: <span className="text-bwise-texto font-mono">{v.formula}</span></p>
-                    <div className="flex justify-between items-center mt-4 pt-4 border-t border-bwise-borda">
-                      <div><p className="text-xs text-bwise-texto-sec font-bold">MÉDIA SISTEMA</p><p className="text-base font-extrabold text-bwise-texto">R$ {v.calculado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p></div>
-                      <div><p className="text-xs text-bwise-texto-sec font-bold">VALOR NO PDF</p><p className="text-base font-extrabold text-bwise-texto">R$ {v.pdf.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p></div>
-                      <div><p className="text-xs text-bwise-texto-sec font-bold">DIFERENÇA</p><p className={`text-base font-black ${v.diferenca === 0 ? 'text-bwise-verde-escuro' : 'text-rose-600'}`}>R$ {v.diferenca.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p></div>
-                    </div>
-                  </div>
+                  <CardVerificacao key={idx} v={v} tema="verde" />
                 ))}
               </div>
             </div>
