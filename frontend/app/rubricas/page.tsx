@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE_URL } from "../../lib/api";
+import { API_BASE_URL, mensagemDeErro } from "../../lib/api";
+import { LinhaResultado } from "../../lib/types";
 import PassoAPasso from "../components/PassoAPasso";
 import Topbar from "../components/Topbar";
 import MetricsRow from "../components/MetricsRow";
@@ -36,7 +37,7 @@ export default function RubricasPage() {
   const [arqSistema, setArqSistema] = useState<File | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [baixando, setBaixando] = useState(false);
-  const [resultados, setResultados] = useState<Record<string, any>[] | null>(null);
+  const [resultados, setResultados] = useState<LinhaResultado[] | null>(null);
 
   const [filtroStatus, setFiltroStatus] = useState("Todos");
   const [filtroFuncionario, setFiltroFuncionario] = useState("");
@@ -67,8 +68,8 @@ export default function RubricasPage() {
       setFiltroStatus("Todos");
       setFiltroFuncionario("");
       setFiltroEvento("Todos");
-    } catch (erro: any) {
-      alert(erro.message || "Erro ao conectar com o motor.");
+    } catch (erro) {
+      alert(mensagemDeErro(erro, "Erro ao conectar com o motor."));
     } finally {
       setCarregando(false);
     }
@@ -132,8 +133,8 @@ export default function RubricasPage() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-    } catch (erro: any) {
-      alert(erro.message || "Erro ao baixar a planilha.");
+    } catch (erro) {
+      alert(mensagemDeErro(erro, "Erro ao baixar a planilha."));
     } finally {
       setBaixando(false);
     }

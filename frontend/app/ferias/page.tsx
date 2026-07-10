@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE_URL } from "../../lib/api";
+import { API_BASE_URL, mensagemDeErro } from "../../lib/api";
+import { ResultadoFerias, VerificacaoFerias } from "../../lib/types";
 import PassoAPasso from "../components/PassoAPasso";
 import Topbar from "../components/Topbar";
 
@@ -12,7 +13,7 @@ function formatarMoeda(valor: number) {
 
 /** Card de verificação: mostra o valor real do recibo em destaque e um
  * selo bem visível dizendo se o cálculo do sistema bateu com esse valor. */
-function CardVerificacao({ v, tema }: { v: any; tema: "neutro" | "verde" }) {
+function CardVerificacao({ v, tema }: { v: VerificacaoFerias; tema: "neutro" | "verde" }) {
   const bate = Math.abs(v.diferenca) < 0.01;
   const claro = tema === "verde";
 
@@ -69,7 +70,7 @@ export default function FeriasPage() {
   const [pdfFerias, setPdfFerias] = useState<File | null>(null);
   const [arqEventos, setArqEventos] = useState<File | null>(null);
   const [arqHistorico, setArqHistorico] = useState<File | null>(null);
-  const [resultado, setResultado] = useState<any>(null);
+  const [resultado, setResultado] = useState<ResultadoFerias | null>(null);
   const [carregando, setCarregando] = useState(false);
 
   const handleAuditarFerias = async () => {
@@ -94,8 +95,8 @@ export default function FeriasPage() {
 
       const dados = await resposta.json();
       setResultado(dados);
-    } catch (erro: any) {
-      alert(erro.message || "Erro de conexão com o servidor.");
+    } catch (erro) {
+      alert(mensagemDeErro(erro, "Erro de conexão com o servidor."));
     } finally {
       setCarregando(false);
     }
@@ -210,7 +211,7 @@ export default function FeriasPage() {
             <div>
               <h3 className="text-xl font-bold text-bwise-texto mb-4">1. Verificação de Férias e Abono Base</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {resultado.verificacoes_base.map((v: any, idx: number) => (
+                {resultado.verificacoes_base.map((v: VerificacaoFerias, idx: number) => (
                   <CardVerificacao key={idx} v={v} tema="neutro" />
                 ))}
               </div>
@@ -234,7 +235,7 @@ export default function FeriasPage() {
 
               {/* Resultados das Médias */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {resultado.verificacoes_medias.map((v: any, idx: number) => (
+                {resultado.verificacoes_medias.map((v: VerificacaoFerias, idx: number) => (
                   <CardVerificacao key={idx} v={v} tema="verde" />
                 ))}
               </div>

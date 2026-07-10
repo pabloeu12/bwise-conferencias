@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE_URL } from "../../lib/api";
+import { API_BASE_URL, mensagemDeErro } from "../../lib/api";
+import { LinhaResultado, MetaConsignados } from "../../lib/types";
 import PassoAPasso from "../components/PassoAPasso";
 import Topbar from "../components/Topbar";
 import MetricsRow from "../components/MetricsRow";
@@ -37,8 +38,8 @@ export default function ConsignadosPage() {
   const [arqEventos, setArqEventos] = useState<File | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [baixando, setBaixando] = useState(false);
-  const [resultados, setResultados] = useState<Record<string, any>[] | null>(null);
-  const [meta, setMeta] = useState<Record<string, any> | null>(null);
+  const [resultados, setResultados] = useState<LinhaResultado[] | null>(null);
+  const [meta, setMeta] = useState<MetaConsignados | null>(null);
 
   const [filtroStatus, setFiltroStatus] = useState("Todos");
   const [filtroNome, setFiltroNome] = useState("");
@@ -72,8 +73,8 @@ export default function ConsignadosPage() {
       setFiltroStatus("Todos");
       setFiltroNome("");
       setFiltroMatricula("");
-    } catch (erro: any) {
-      alert(erro.message || "Erro de conexão com o motor.");
+    } catch (erro) {
+      alert(mensagemDeErro(erro, "Erro de conexão com o motor."));
     } finally {
       setCarregando(false);
     }
@@ -117,8 +118,8 @@ export default function ConsignadosPage() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-    } catch (erro: any) {
-      alert(erro.message || "Erro ao baixar a planilha.");
+    } catch (erro) {
+      alert(mensagemDeErro(erro, "Erro ao baixar a planilha."));
     } finally {
       setBaixando(false);
     }

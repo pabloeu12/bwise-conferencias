@@ -1,50 +1,74 @@
 # Plataforma de Conferências — Bwise & Maçaneiro
 
-Sistema unificado de conferência de folha de pagamento com quatro módulos integrados.
+Sistema de conferência de folha de pagamento com quatro módulos:
 
-## Módulos
+| # | Módulo | Função |
+|---|--------|--------|
+| 1 | Auditoria de Rubricas | Cruzamento de lançamentos x sistema KMM |
+| 2 | Adiantamento Salarial | Comparação de adiantamentos entre meses |
+| 3 | Conferência de Férias | Verificação de recibo de férias individual |
+| 4 | Conferência de Consignados | Emprega Brasil x folha e limite de 35% |
 
-| # | Nome | Função |
-|---|------|--------|
-| 1 | 📋 Auditoria de Rubricas | Cruzamento de lançamentos x sistema KMM |
-| 2 | 💰 Adiantamento Salarial | Comparação de adiantamentos entre meses |
-| 3 | 🏖️ Conferencia de Férias | Verificação de recibo de férias individual |
-| 4 | 💳 Conferencia de Consignados | Conferência de Emprega Brasil x folha e limite de 35% |
+## ⚠️ Este repositório tem DUAS interfaces (front-ends)
 
-## Estrutura do Projeto
+Elas fazem exatamente a mesma coisa — a lógica de cálculo (pasta `services/`) é
+100% compartilhada entre as duas. A diferença é só a tela.
+
+| | Streamlit (original) | Next.js + FastAPI (atual) |
+|---|---|---|
+| **Pasta** | `Inicio.py`, `pages/`, `core/` | `frontend/` (tela) + `app.py` (backend) |
+| **Hospedado em** | não hospedado publicamente hoje | Vercel (tela) + Render (backend) |
+| **Rodar local** | `streamlit run Inicio.py` | ver passo a passo abaixo |
+| **Situação** | mantido em paralelo, funcionando | versão em uso ativo, com a identidade visual da Bwise |
+
+Se algum dia decidir usar só uma das duas, me avise para eu remover a outra
+com segurança (hoje as duas continuam ativas por decisão sua).
+
+## Estrutura do projeto
 
 ```
 bwise-conferencias/
-├── Inicio.py             ← Página inicial (dashboard)
-├── pages/
-│   ├── 1_Auditoria_de_Rubricas.py
-│   ├── 2_Adiantamento_Salarial.py
-│   ├── 3_Conferencia_de_Ferias.py
-│   └── 4_Conferencia_de_Consignados.py
-├── core/
-│   ├── ui.py             ← Cabeçalho, logos, CSS global
-│   └── utils.py          ← Funções utilitárias compartilhadas
-├── assets/
-│   ├── logo_bwise.png
-│   └── logo_macaneiro.jpg
-└── requirements.txt
+├── Inicio.py                  ← tela inicial do Streamlit
+├── pages/                     ← telas do Streamlit (1 arquivo por módulo)
+├── core/                      ← visual e utilitários do Streamlit
+├── app.py                     ← backend FastAPI usado pelo frontend/
+├── services/                  ← lógica de cálculo, USADA PELOS DOIS sistemas
+├── assets/                    ← logos usadas pelo Streamlit
+├── tests/                     ← testes automatizados (Python)
+├── frontend/                  ← site em Next.js (Vercel)
+│   ├── app/                   ← páginas e componentes
+│   └── lib/api.ts             ← URL do backend
+├── requirements.txt           ← dependências Python (Streamlit + FastAPI)
+└── DEPLOY.md                  ← passo a passo de publicação (Render + Vercel)
 ```
 
-## Como executar localmente
+## Como rodar localmente
+
+### Opção A — Streamlit (versão original)
 
 ```bash
-# 1. Instalar dependências
 pip install -r requirements.txt
-
-# 2. Copiar logos para a pasta assets/
-#    (logo bwise.png e logo macaneiro.jpg)
-
-# 3. Executar
 streamlit run Inicio.py
 ```
 
-## Deploy no Streamlit Cloud
+### Opção B — Next.js + FastAPI (versão atual)
 
-1. Subir este repositório no GitHub
-2. Acessar share.streamlit.io e apontar para `Inicio.py`
-3. Copiar as logos para `assets/` antes do push
+```bash
+# Terminal 1 — backend
+pip install -r requirements.txt
+uvicorn app:app --reload --port 8000
+
+# Terminal 2 — frontend
+cd frontend
+npm install
+npm run dev
+```
+
+Acesse `http://localhost:3000`. Veja `DEPLOY.md` para publicar de graça
+(Render + Vercel).
+
+## Testes automatizados
+
+```bash
+python -m unittest tests.test_comparador -v
+```

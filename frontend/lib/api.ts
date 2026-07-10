@@ -7,3 +7,8 @@
  */
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
+/** Extrai uma mensagem legível de um erro capturado em catch (erro: unknown). */
+export function mensagemDeErro(erro: unknown, padrao: string): string {
+  return erro instanceof Error && erro.message ? erro.message : padrao;
+}
