@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE_URL } from "../../lib/api";
 import PassoAPasso from "../components/PassoAPasso";
+import Topbar from "../components/Topbar";
 
 export default function FeriasPage() {
   const router = useRouter();
@@ -43,8 +44,9 @@ export default function FeriasPage() {
   };
 
   return (
-    <main className="flex-1 p-12 overflow-y-auto">
-      <div className="max-w-5xl mx-auto flex flex-col">
+    <main className="flex-1 flex flex-col overflow-y-auto">
+      <Topbar />
+      <div className="max-w-5xl mx-auto w-full flex flex-col p-12">
         <div className="mb-8 text-left">
           <button onClick={() => router.push("/")} className="inline-flex items-center text-bwise-verde-escuro font-bold hover:text-bwise-verde transition-colors mb-4">
             <span className="mr-2">←</span> Voltar para o Painel

@@ -2,12 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { FileSpreadsheet, Banknote, CalendarDays, CreditCard } from "lucide-react";
+import Topbar from "./components/Topbar";
 
 export default function Home() {
   const router = useRouter();
 
   return (
     <main className="flex-1 flex flex-col relative overflow-hidden">
+      <Topbar />
       <div className="p-6 md:p-12 flex-1 z-10 overflow-y-auto">
         <div className="max-w-6xl mx-auto relative">
 
