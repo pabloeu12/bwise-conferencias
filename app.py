@@ -4,6 +4,8 @@ app.py
 Ponto de entrada principal do backend FastAPI (Motor Bwise).
 """
 
+import os
+
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
@@ -16,10 +18,20 @@ from services.consignados import executar_conferencia_consignados, gerar_excel_c
 
 app = FastAPI(title="Motor Bwise")
 
-# Permite que o nosso front-end (localhost:3000) se comunique livremente com a API
+# Origens do front-end autorizadas a chamar a API. Em produção, defina a
+# variável de ambiente FRONTEND_ORIGINS (separada por vírgula) com a URL
+# pública do frontend (ex: https://seu-app.vercel.app). Em desenvolvimento
+# local, localhost:3000 já funciona sem configuração extra.
+_origens_padrao = "http://localhost:3000"
+origens = [
+    origem.strip()
+    for origem in os.environ.get("FRONTEND_ORIGINS", _origens_padrao).split(",")
+    if origem.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=origens,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
