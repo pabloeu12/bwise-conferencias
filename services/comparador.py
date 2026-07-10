@@ -9,15 +9,18 @@ import unicodedata
 import openpyxl
 import pandas as pd
 from io import BytesIO
-from openpyxl.styles import Alignment, Font
+from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 # Importando as funções globais e constantes do core
 from core.utils import (
-    moeda_para_float, limpar_str, 
-    COR_VERDE, COR_VERMELHO, COR_AMARELO, COR_CABECALHO, COR_RESUMO, 
+    moeda_para_float, limpar_str,
+    COR_VERDE, COR_VERMELHO, COR_AMARELO, COR_CABECALHO, COR_RESUMO,
     FONTE_CAB, FONTE_BOLD, FONTE_NORMAL, BORDA
 )
+
+# Cor exclusiva deste módulo para o status "ausente nos lançamentos"
+COR_LARANJA = PatternFill("solid", fgColor="FFD8A8")
 
 # ── Configurações ────────────────────────────────────────────
 TOLERANCIA = 0.05   # diferença máxima aceita como OK (R$)
@@ -209,6 +212,15 @@ def executar_comparacao(arquivo_lanc, arquivo_sist) -> list[dict]:
     sistema = ler_sistema(arquivo_sist)
     resultados = []
 
+    # Códigos que aparecem em algum cabeçalho da Planilha de Lançamentos
+    # (independente de o funcionário ter valor lançado ou não).
+    codigos_no_cabecalho = {cod for col in colunas for cod in col["codigos"]}
+
+    # Controla quais combinações (matrícula, código) já foram cobertas por um
+    # lançamento com valor diferente de zero, para não gerar alerta duplicado
+    # nem falso-positivo na verificação inversa.
+    processados = set()
+
     for mat, valores in lanc_por_mat.items():
         nome_func   = nomes.get(mat, "")
         ev_sistema  = sistema.get(mat)
@@ -220,6 +232,9 @@ def executar_comparacao(arquivo_lanc, arquivo_sist) -> list[dict]:
 
             codigos    = col["codigos"]
             nome_event = col["nome"]
+
+            for cod_coberto in codigos:
+                processados.add((mat, cod_coberto))
 
             if ev_sistema is None:
                 resultados.append(_linha(
@@ -267,6 +282,38 @@ def executar_comparacao(arquivo_lanc, arquivo_sist) -> list[dict]:
                 tipo, status, "",
             ))
 
+    # ── Verificação inversa: Planilha do Sistema → Planilha de Lançamentos ──
+    # Todo código com valor efetivo no sistema precisa estar previsto (e com
+    # valor diferente de zero) na Planilha de Lançamentos para a mesma matrícula.
+    for mat, eventos in sistema.items():
+        nome_func = nomes.get(mat, "")
+
+        for cod, ev in eventos.items():
+            if (mat, cod) in processados:
+                continue
+
+            ref, prov, desc = ev["ref"], ev["prov"], ev["desc"]
+            if ref == 0.0 and prov == 0.0 and desc == 0.0:
+                continue  # sem valor efetivo no sistema: não gera alerta
+
+            if mat in lanc_por_mat and cod in codigos_no_cabecalho:
+                obs = (
+                    "Evento existente na Planilha do Sistema, mas sem valor "
+                    "informado na Planilha de Lançamentos para esta matrícula."
+                )
+            else:
+                obs = (
+                    "Evento existente na Planilha do Sistema, mas ausente na "
+                    "Planilha de Lançamentos para esta matrícula."
+                )
+
+            resultados.append(_linha(
+                mat, nome_func, cod, ev["nome"], 0.0,
+                round(ref, 2), round(prov, 2), round(desc, 2),
+                "—", "AUSENTE_NOS_LANCAMENTOS", obs,
+            ))
+            processados.add((mat, cod))
+
     return resultados
 
 def _linha(mat, func, cod, evento, val, ref, prov, desc, tipo, status, obs) -> dict:
@@ -308,7 +355,13 @@ def gerar_excel(resultados: list[dict]) -> bytes:
                 c.number_format = "#,##0.00"
 
         status = reg.get("Status", "")
-        cor = COR_VERDE if "OK" in status else COR_VERMELHO if status == "DIVERGENTE" else COR_AMARELO if status == "NAO_ENCONTRADO" else None
+        cor = (
+            COR_VERDE if "OK" in status
+            else COR_VERMELHO if status == "DIVERGENTE"
+            else COR_AMARELO if status == "NAO_ENCONTRADO"
+            else COR_LARANJA if status == "AUSENTE_NOS_LANCAMENTOS"
+            else None
+        )
         if cor:
             for ci in range(1, len(COLUNAS_SAIDA) + 1): ws.cell(row=ri, column=ci).fill = cor
 
@@ -324,38 +377,58 @@ def gerar_excel(resultados: list[dict]) -> bytes:
     ok_tot = ok_ref + ok_prov + ok_desc
     diverg = sum(1 for r in resultados if r["Status"] == "DIVERGENTE")
     nao_enc = sum(1 for r in resultados if r["Status"] == "NAO_ENCONTRADO")
+    ausentes = sum(1 for r in resultados if r["Status"] == "AUSENTE_NOS_LANCAMENTOS")
     perc = round(ok_tot / total * 100, 1) if total else 0
 
+    def _pct(qtd: int) -> str:
+        return f"{round(qtd / total * 100, 1) if total else 0}%"
+
+    # Título ocupa sempre a linha 1 (posição estrutural, não um índice "mágico").
+    ws2.merge_cells("A1:C1")
+    ws2["A1"] = "CONFERÊNCIA DE FOLHA DE PAGAMENTO — MAÇANEIRO"
+    ws2["A1"].fill = COR_CABECALHO
+    ws2["A1"].font = Font(color="FFFFFF", bold=True, name="Calibri", size=13)
+    ws2["A1"].alignment = Alignment(horizontal="center", vertical="center")
+    ws2.row_dimensions[1].height = 35
+
+    # Cada linha carrega seu próprio "tipo" de formatação — a posição na aba
+    # é sempre derivada da ordem desta lista, nunca de um número fixo.
     linhas = [
-        ("CONFERÊNCIA DE FOLHA DE PAGAMENTO — MAÇANEIRO", "", ""),
-        ("", "", ""),
-        ("INDICADOR", "QUANTIDADE", "PERCENTUAL"),
-        ("Total comparado",       total,   "100%"),
-        ("✅ OK — Referência",    ok_ref,  f"{round(ok_ref/total*100,1) if total else 0}%"),
-        ("✅ OK — Provento",      ok_prov, f"{round(ok_prov/total*100,1) if total else 0}%"),
-        ("✅ OK — Desconto",      ok_desc, f"{round(ok_desc/total*100,1) if total else 0}%"),
-        ("✅ Total OK",           ok_tot,  f"{perc}%"),
-        ("❌ Divergentes",        diverg,  f"{round(diverg/total*100,1) if total else 0}%"),
-        ("⚠️  Não encontrados",    nao_enc, f"{round(nao_enc/total*100,1) if total else 0}%"),
-        ("", "", ""),
-        ("PERCENTUAL DE ACERTO GERAL", "", f"{perc}%"),
+        ("vazio",              "",                                 "",      ""),
+        ("cabecalho",          "INDICADOR",                       "QUANTIDADE", "PERCENTUAL"),
+        ("normal",             "Total comparado",                 total,    "100%"),
+        ("normal",             "✅ OK — Referência",              ok_ref,   _pct(ok_ref)),
+        ("normal",             "✅ OK — Provento",                ok_prov,  _pct(ok_prov)),
+        ("normal",             "✅ OK — Desconto",                ok_desc,  _pct(ok_desc)),
+        ("ok_total",           "✅ Total OK",                     ok_tot,   f"{perc}%"),
+        ("divergente",         "❌ Divergentes",                  diverg,   _pct(diverg)),
+        ("nao_encontrado",     "⚠️ Não encontrados no Sistema",   nao_enc,  _pct(nao_enc)),
+        ("ausente_lancamento", "🟠 Ausentes nos Lançamentos",     ausentes, _pct(ausentes)),
+        ("vazio",              "",                                 "",      ""),
+        ("percentual_geral",   "PERCENTUAL DE ACERTO GERAL",      "",       f"{perc}%"),
     ]
 
-    for ri, tripla in enumerate(linhas, 1):
-        a, b, c_val = tripla if isinstance(tripla, tuple) else (tripla, "", "")
-        for ci, val in enumerate((a, b, c_val), 1):
-            cel = ws2.cell(row=ri, column=ci, value=val)
-            cel.border, cel.font = BORDA, FONTE_NORMAL
-            cel.alignment = Alignment(horizontal="center" if ci > 1 else "left", vertical="center")
+    cores_por_tipo = {
+        "cabecalho":          (COR_RESUMO,    FONTE_BOLD),
+        "ok_total":           (COR_VERDE,     FONTE_BOLD),
+        "divergente":         (COR_VERMELHO,  None),
+        "nao_encontrado":     (COR_AMARELO,   None),
+        "ausente_lancamento": (COR_LARANJA,   None),
+        "percentual_geral":   (COR_CABECALHO, Font(color="FFFFFF", bold=True, name="Calibri", size=11)),
+    }
 
-    ws2.merge_cells("A1:C1")
-    ws2["A1"].fill, ws2["A1"].font, ws2["A1"].alignment = COR_CABECALHO, Font(color="FFFFFF", bold=True, name="Calibri", size=13), Alignment(horizontal="center", vertical="center")
-    ws2.row_dimensions[1].height = 35
-    for ci in range(1, 4): ws2.cell(row=3, column=ci).fill, ws2.cell(row=3, column=ci).font = COR_RESUMO, FONTE_BOLD
-    for r, cor in [(8, COR_VERDE), (9, COR_VERMELHO), (10, COR_AMARELO), (12, COR_CABECALHO)]:
-        for ci in range(1, 4): 
-            ws2.cell(row=r, column=ci).fill = cor
-            if r in (8, 12): ws2.cell(row=r, column=ci).font = FONTE_BOLD if r == 8 else Font(color="FFFFFF", bold=True, name="Calibri", size=11)
+    for offset, (tipo, a, b, c_val) in enumerate(linhas, start=2):
+        for ci, val in enumerate((a, b, c_val), 1):
+            cel = ws2.cell(row=offset, column=ci, value=val)
+            cel.border = BORDA
+            cel.font = FONTE_NORMAL
+            cel.alignment = Alignment(horizontal="center" if ci > 1 else "left", vertical="center")
+        cor, fonte = cores_por_tipo.get(tipo, (None, None))
+        if cor:
+            for ci in range(1, 4):
+                ws2.cell(row=offset, column=ci).fill = cor
+                if fonte:
+                    ws2.cell(row=offset, column=ci).font = fonte
 
     ws2.column_dimensions["A"].width, ws2.column_dimensions["B"].width, ws2.column_dimensions["C"].width = 38, 16, 16
 

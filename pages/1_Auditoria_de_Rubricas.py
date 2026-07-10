@@ -101,19 +101,21 @@ if "df_rubricas" in st.session_state:
     df = st.session_state["df_rubricas"]
     resultados = st.session_state["resultados_rubricas"]
 
-    total   = len(df)
-    ok_tot  = df["Status"].str.startswith("OK").sum()
-    diverg  = (df["Status"] == "DIVERGENTE").sum()
-    nao_enc = (df["Status"] == "NAO_ENCONTRADO").sum()
+    total    = len(df)
+    ok_tot   = df["Status"].str.startswith("OK").sum()
+    diverg   = (df["Status"] == "DIVERGENTE").sum()
+    nao_enc  = (df["Status"] == "NAO_ENCONTRADO").sum()
+    ausentes = (df["Status"] == "AUSENTE_NOS_LANCAMENTOS").sum()
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('### <span class="subtitulo">Resultado Geral</span>', unsafe_allow_html=True)
 
-    m1, m2, m3, m4 = st.columns(4)
+    m1, m2, m3, m4, m5 = st.columns(5)
     m1.metric("Eventos Comparados", total)
     m2.metric("Conferidos OK", ok_tot)
     m3.metric("Divergências", diverg)
-    m4.metric("Não Encontrados", nao_enc)
+    m4.metric("Não Encontrados no Sistema", nao_enc)
+    m5.metric("Ausentes nos Lançamentos", ausentes)
 
     st.markdown("---")
 
@@ -153,6 +155,8 @@ if "df_rubricas" in st.session_state:
             cor = "background-color: #f8d7da; color: #721c24;"
         elif status == "NAO_ENCONTRADO":
             cor = "background-color: #fff3cd; color: #856404;"
+        elif status == "AUSENTE_NOS_LANCAMENTOS":
+            cor = "background-color: #ffe0b2; color: #7a3e00;"
         else:
             cor = ""
         return [cor] * len(row)
