@@ -117,7 +117,7 @@ export default function FeriasPage() {
         <PassoAPasso titulo="Como extrair os documentos do sistema (Passo a Passo)">
           <div>
             <h4 className="font-bold text-bwise-texto mb-2">1. RECIBO DE FÉRIAS (PDF)</h4>
-            <p className="mb-2"><strong>Caminho:</strong> Férias ➔ Controle de Período Aquisitivo e Concessivo ➔ Impressão de Documentos...</p>
+            <p className="mb-2"><strong>Caminho:</strong> Folha de Pagamento ➔ Férias ➔ Impressão de Documentos...</p>
             <ul className="list-disc list-inside space-y-1">
               <li>Clicar em <strong>Avançar</strong> ➔ selecionar funcionário ➔ selecionar o último período de férias ➔ <strong>Recibo de Férias</strong>.</li>
               <li>Salvar o arquivo no formato <strong>PDF</strong>.</li>

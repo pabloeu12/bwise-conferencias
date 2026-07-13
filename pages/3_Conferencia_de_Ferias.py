@@ -33,7 +33,7 @@ if not (pdf_file and eventos_file and historico_file):
     with st.expander("Como extrair os documentos do sistema (Passo a Passo)"):
         st.markdown("""
         ### 1. RECIBO DE FÉRIAS (PDF)
-        **Caminho:** `Férias` ➔ `Controle de Período Aquisitivo e Concessivo` ➔ `Impressão de Documentos...`
+        **Caminho:** `Folha de Pagamento` ➔ `Férias` ➔ `Impressão de Documentos...`
         * Clicar em **Avançar** ➔ Selecionar funcionário ➔ Selecionar o último período de férias ➔ **Recibo de Férias**.
         * Salvar o arquivo no formato **PDF**.
 
