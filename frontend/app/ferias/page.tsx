@@ -90,7 +90,8 @@ export default function FeriasPage() {
       });
 
       if (!resposta.ok) {
-        throw new Error("Erro ao processar os relatórios de férias no motor Python.");
+        const erro = await resposta.json().catch(() => null);
+        throw new Error(erro?.detail || "Erro ao processar os relatórios de férias no motor Python.");
       }
 
       const dados = await resposta.json();
