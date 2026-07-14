@@ -21,7 +21,11 @@ def arredondar(valor):
         return valor
 
 def nome_arquivo(arquivo) -> str:
-    return str(getattr(arquivo, "name", getattr(arquivo, "filename", ""))).lower()
+    # SpooledTemporaryFile (usado pelo upload do FastAPI) tem atributo "name" que
+    # existe mas vale None enquanto o arquivo não é rolado para disco — por isso
+    # "filename" (nome original explícito) precisa ser checado primeiro.
+    nome = getattr(arquivo, "filename", None) or getattr(arquivo, "name", None) or ""
+    return str(nome).lower()
 
 def reposicionar(arquivo):
     try:
