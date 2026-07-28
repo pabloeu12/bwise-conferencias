@@ -332,10 +332,7 @@ def executar_comparacao(arquivo_lanc, arquivo_sist) -> list[dict]:
                     "informado na Planilha de Lançamentos para esta matrícula."
                 )
             else:
-                obs = (
-                    "Evento existente na Planilha do Sistema, mas ausente na "
-                    "Planilha de Lançamentos para esta matrícula."
-                )
+                obs = "NÃO PRESENTE NA PLANILHA DE LANÇAMENTOS"
 
             resultados.append(_linha(
                 mat, nome_func, cod, ev["nome"], 0.0,

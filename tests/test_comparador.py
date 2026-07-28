@@ -202,6 +202,10 @@ class TestNomeFuncionarioViaSistema(unittest.TestCase):
         self.assertEqual(r["Status"], "AUSENTE_NOS_LANCAMENTOS")
         self.assertEqual(r["Funcionário"], "FUNCIONARIO NOVENTA E NOVE")
 
+    def test_observacao_quando_matricula_nao_existe_nos_lancamentos(self):
+        r = self.por_mat[99]
+        self.assertEqual(r["Observação"], "NÃO PRESENTE NA PLANILHA DE LANÇAMENTOS")
+
     def test_nome_dos_lancamentos_tem_prioridade_quando_disponivel(self):
         r = self.por_mat[1]
         self.assertEqual(r["Funcionário"], "FUNCIONARIO UM")
