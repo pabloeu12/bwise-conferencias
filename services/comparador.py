@@ -212,7 +212,14 @@ def _mapear_colunas_sistema(dados) -> tuple[int, dict]:
                 break
             idxs[campo] = idx
         else:
-            idxs["func"] = next((normalizados[opcao] for opcao in aliases_func if opcao in normalizados), None)
+            idx_func = next((normalizados[opcao] for opcao in aliases_func if opcao in normalizados), None)
+            if idx_func is None:
+                # Cabeçalho não identifica a coluna de nome do funcionário por texto:
+                # no Extrato KMM ela costuma estar na coluna C (índice 2).
+                candidato = 2
+                if candidato not in idxs.values():
+                    idx_func = candidato
+            idxs["func"] = idx_func
             return pos + 1, idxs
 
     if dados and len(dados[0]) >= 7:

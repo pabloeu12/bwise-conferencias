@@ -207,6 +207,28 @@ class TestNomeFuncionarioViaSistema(unittest.TestCase):
         self.assertEqual(r["Funcionário"], "FUNCIONARIO UM")
 
 
+class TestNomeFuncionarioColunaCComoPadraoDoExtratoKMM(unittest.TestCase):
+    """Quando a Planilha do Sistema não tem nenhum cabeçalho reconhecível para
+    o nome do funcionário, a coluna C (índice 2) é usada como padrão do
+    Extrato KMM, que costuma trazer o nome nessa posição."""
+
+    LANC = [
+        ["Matricula", "Nome", "Comissao Especial (300)"],
+    ]
+    SIST = [
+        ["Matricula", "Filial", "Nome do Trabalhador X", "Cod Evento",
+         "Nome Evento", "Referencia", "Valor Provento", "Valor Desconto"],
+        [1, "SETOR X", "PEDRO EXEMPLO", 300, "Comissao Especial", 500.00, 0, 0],
+    ]
+
+    def test_nome_via_coluna_c_quando_cabecalho_nao_reconhecido(self):
+        resultados = executar_comparacao(_xlsx(self.LANC), _xlsx(self.SIST))
+        self.assertEqual(len(resultados), 1)
+        r = resultados[0]
+        self.assertEqual(r["Status"], "AUSENTE_NOS_LANCAMENTOS")
+        self.assertEqual(r["Funcionário"], "PEDRO EXEMPLO")
+
+
 class TestNormalizacaoCodigoEvento(unittest.TestCase):
     """Normalização de código: numérico, texto, decimal .0, espaços e vazio."""
 
