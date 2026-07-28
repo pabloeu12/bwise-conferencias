@@ -193,7 +193,10 @@ def _mapear_colunas_sistema(dados) -> tuple[int, dict]:
     # para preencher a coluna "Funcionário" de matrículas ausentes na Planilha de Lançamentos.
     aliases_func = (
         "funcionario", "nome funcionario", "nome do funcionario",
-        "colaborador", "nome colaborador", "empregado", "nome empregado",
+        "colaborador", "nome colaborador", "nome do colaborador",
+        "empregado", "nome empregado", "nome do empregado",
+        "trabalhador", "nome trabalhador", "nome do trabalhador",
+        "segurado", "nome segurado", "nome do segurado",
     )
 
     for pos, cabecalho in enumerate(dados):

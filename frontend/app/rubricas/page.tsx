@@ -43,6 +43,11 @@ export default function RubricasPage() {
   const [filtroFuncionario, setFiltroFuncionario] = useState("");
   const [filtroEvento, setFiltroEvento] = useState("Todos");
 
+  const [modalAusentesAberto, setModalAusentesAberto] = useState(false);
+  const [buscaEventoAusente, setBuscaEventoAusente] = useState("");
+  const [eventosAusentesMarcados, setEventosAusentesMarcados] = useState<Set<string>>(new Set());
+  const [filtroAusentesAtivo, setFiltroAusentesAtivo] = useState(false);
+
   const handleAuditarRubricas = async () => {
     if (!arqLancamentos || !arqSistema) return;
     setCarregando(true);
@@ -68,6 +73,9 @@ export default function RubricasPage() {
       setFiltroStatus("Todos");
       setFiltroFuncionario("");
       setFiltroEvento("Todos");
+      setFiltroAusentesAtivo(false);
+      setEventosAusentesMarcados(new Set());
+      setBuscaEventoAusente("");
     } catch (erro) {
       alert(mensagemDeErro(erro, "Erro ao conectar com o motor."));
     } finally {
@@ -85,11 +93,36 @@ export default function RubricasPage() {
     return Array.from(new Set(resultados.map((r) => String(r["Nome do Evento"])))).sort();
   }, [resultados]);
 
+  const eventosAusentesDisponiveis = useMemo(() => {
+    if (!resultados) return [];
+    const contagem = new Map<string, number>();
+    for (const r of resultados) {
+      if (r["Status"] !== "AUSENTE_NOS_LANCAMENTOS") continue;
+      const nome = String(r["Nome do Evento"] ?? "").trim() || "(Sem nome de evento)";
+      contagem.set(nome, (contagem.get(nome) ?? 0) + 1);
+    }
+    return Array.from(contagem.entries())
+      .map(([nome, quantidade]) => ({ nome, quantidade }))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [resultados]);
+
+  const eventosAusentesFiltradosNaModal = useMemo(() => {
+    const termo = buscaEventoAusente.trim().toLowerCase();
+    if (!termo) return eventosAusentesDisponiveis;
+    return eventosAusentesDisponiveis.filter((e) => e.nome.toLowerCase().includes(termo));
+  }, [eventosAusentesDisponiveis, buscaEventoAusente]);
+
   const resultadosFiltrados = useMemo(() => {
     if (!resultados) return [];
     return resultados.filter((r) => {
-      if (filtroStatus !== "Todos" && String(r["Status"]) !== filtroStatus) return false;
-      if (filtroEvento !== "Todos" && String(r["Nome do Evento"]) !== filtroEvento) return false;
+      if (filtroAusentesAtivo) {
+        if (r["Status"] !== "AUSENTE_NOS_LANCAMENTOS") return false;
+        const nome = String(r["Nome do Evento"] ?? "").trim() || "(Sem nome de evento)";
+        if (!eventosAusentesMarcados.has(nome)) return false;
+      } else {
+        if (filtroStatus !== "Todos" && String(r["Status"]) !== filtroStatus) return false;
+        if (filtroEvento !== "Todos" && String(r["Nome do Evento"]) !== filtroEvento) return false;
+      }
       if (filtroFuncionario.trim()) {
         const termo = filtroFuncionario.trim().toLowerCase();
         const nome = String(r["Funcionário"] ?? "").toLowerCase();
@@ -98,7 +131,25 @@ export default function RubricasPage() {
       }
       return true;
     });
-  }, [resultados, filtroStatus, filtroEvento, filtroFuncionario]);
+  }, [resultados, filtroStatus, filtroEvento, filtroFuncionario, filtroAusentesAtivo, eventosAusentesMarcados]);
+
+  function alternarEventoAusente(nome: string) {
+    setEventosAusentesMarcados((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(nome)) novo.delete(nome);
+      else novo.add(nome);
+      return novo;
+    });
+  }
+
+  function aplicarFiltroAusentes() {
+    setFiltroAusentesAtivo(true);
+    setModalAusentesAberto(false);
+  }
+
+  function limparFiltroAusentes() {
+    setFiltroAusentesAtivo(false);
+  }
 
   const metrics = useMemo(() => {
     if (!resultados) return [];
@@ -227,12 +278,39 @@ export default function RubricasPage() {
             </div>
             <MetricsRow metrics={metrics} />
 
+            <div className="bg-[#fff3e6] border border-[#ffd8a8] rounded-xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="font-bold text-[#7a3e00]">Ausentes nos Lançamentos</p>
+                <p className="text-xs text-[#7a3e00]/80">
+                  {eventosAusentesDisponiveis.length === 0
+                    ? "Nenhum evento ausente encontrado neste cruzamento."
+                    : `${eventosAusentesDisponiveis.length} evento(s) distinto(s) ausente(s). Escolha quais deseja visualizar na tabela.`}
+                </p>
+                {filtroAusentesAtivo && (
+                  <p className="text-xs text-[#7a3e00] mt-1">
+                    Filtro ativo: exibindo {eventosAusentesMarcados.size} evento(s) selecionado(s).{" "}
+                    <button onClick={limparFiltroAusentes} className="underline font-semibold">
+                      Limpar filtro
+                    </button>
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => setModalAusentesAberto(true)}
+                disabled={eventosAusentesDisponiveis.length === 0}
+                className="px-5 py-2.5 bg-[#7a3e00] hover:bg-[#5c2e00] disabled:bg-bwise-borda disabled:text-bwise-texto-sec text-white font-bold rounded-lg shadow transition-colors shrink-0"
+              >
+                Escolher eventos ausentes
+              </button>
+            </div>
+
             <h3 className="text-lg font-bold text-bwise-texto mb-3">Filtros</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
               <select
                 value={filtroStatus}
                 onChange={(e) => setFiltroStatus(e.target.value)}
-                className="border border-bwise-borda rounded-lg px-3 py-2 text-sm bg-bwise-superficie text-bwise-texto"
+                disabled={filtroAusentesAtivo}
+                className="border border-bwise-borda rounded-lg px-3 py-2 text-sm bg-bwise-superficie text-bwise-texto disabled:opacity-50"
               >
                 <option value="Todos">Todos os status</option>
                 {statusDisponiveis.map((s) => (
@@ -248,7 +326,8 @@ export default function RubricasPage() {
               <select
                 value={filtroEvento}
                 onChange={(e) => setFiltroEvento(e.target.value)}
-                className="border border-bwise-borda rounded-lg px-3 py-2 text-sm bg-bwise-superficie text-bwise-texto"
+                disabled={filtroAusentesAtivo}
+                className="border border-bwise-borda rounded-lg px-3 py-2 text-sm bg-bwise-superficie text-bwise-texto disabled:opacity-50"
               >
                 <option value="Todos">Todos os eventos</option>
                 {eventosDisponiveis.map((ev) => (
@@ -256,6 +335,11 @@ export default function RubricasPage() {
                 ))}
               </select>
             </div>
+            {filtroAusentesAtivo && (
+              <p className="text-xs text-bwise-texto-sec mb-2">
+                Os filtros de status e evento acima estão desativados enquanto o filtro de &quot;Ausentes nos Lançamentos&quot; estiver ativo.
+              </p>
+            )}
             <p className="text-xs text-bwise-texto-sec mb-4">
               A exibir {resultadosFiltrados.length} de {resultados.length} eventos
             </p>
@@ -268,6 +352,84 @@ export default function RubricasPage() {
           </div>
         )}
       </div>
+
+      {modalAusentesAberto && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setModalAusentesAberto(false)}
+        >
+          <div
+            className="bg-bwise-superficie rounded-2xl shadow-2xl border border-bwise-borda w-full max-w-lg max-h-[80vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-bwise-borda">
+              <h3 className="text-lg font-bold text-bwise-texto">Eventos Ausentes nos Lançamentos</h3>
+              <p className="text-xs text-bwise-texto-sec mt-1">
+                Marque quais eventos você quer visualizar na tabela abaixo (como um filtro de coluna do Excel).
+              </p>
+              <input
+                value={buscaEventoAusente}
+                onChange={(e) => setBuscaEventoAusente(e.target.value)}
+                placeholder="Buscar evento..."
+                className="mt-3 w-full border border-bwise-borda rounded-lg px-3 py-2 text-sm bg-bwise-superficie text-bwise-texto placeholder:text-bwise-texto-sec"
+              />
+              <div className="flex gap-3 mt-3 text-xs">
+                <button
+                  onClick={() => setEventosAusentesMarcados(new Set(eventosAusentesFiltradosNaModal.map((e) => e.nome)))}
+                  className="text-bwise-verde-escuro font-semibold hover:underline"
+                >
+                  Marcar todos
+                </button>
+                <button
+                  onClick={() => setEventosAusentesMarcados(new Set())}
+                  className="text-bwise-texto-sec font-semibold hover:underline"
+                >
+                  Desmarcar todos
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto p-2 flex-1">
+              {eventosAusentesFiltradosNaModal.length === 0 && (
+                <p className="text-sm text-bwise-texto-sec text-center py-6">Nenhum evento encontrado para essa busca.</p>
+              )}
+              {eventosAusentesFiltradosNaModal.map((evento) => (
+                <label
+                  key={evento.nome}
+                  className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-lg hover:bg-bwise-fundo cursor-pointer"
+                >
+                  <span className="flex items-center gap-3 text-sm text-bwise-texto">
+                    <input
+                      type="checkbox"
+                      checked={eventosAusentesMarcados.has(evento.nome)}
+                      onChange={() => alternarEventoAusente(evento.nome)}
+                      className="h-4 w-4 accent-bwise-verde-escuro"
+                    />
+                    {evento.nome}
+                  </span>
+                  <span className="text-xs text-bwise-texto-sec">{evento.quantidade}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="p-6 border-t border-bwise-borda flex justify-end gap-3">
+              <button
+                onClick={() => setModalAusentesAberto(false)}
+                className="px-5 py-2.5 border border-bwise-borda text-bwise-texto font-bold rounded-lg hover:bg-bwise-fundo transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={aplicarFiltroAusentes}
+                disabled={eventosAusentesMarcados.size === 0}
+                className="px-5 py-2.5 bg-bwise-verde hover:bg-bwise-verde-escuro disabled:bg-bwise-borda disabled:text-bwise-texto-sec text-[#0B2015] font-bold rounded-lg shadow transition-colors"
+              >
+                Aplicar filtro ({eventosAusentesMarcados.size})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
