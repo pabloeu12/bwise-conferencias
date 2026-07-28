@@ -332,7 +332,7 @@ def executar_comparacao(arquivo_lanc, arquivo_sist) -> list[dict]:
                     "informado na Planilha de Lançamentos para esta matrícula."
                 )
             else:
-                obs = "NÃO PRESENTE NA PLANILHA DE LANÇAMENTOS"
+                obs = "Empregado não presente na planilha de lançamentos"
 
             resultados.append(_linha(
                 mat, nome_func, cod, ev["nome"], 0.0,
