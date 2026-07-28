@@ -302,6 +302,9 @@ def executar_comparacao(arquivo_lanc, arquivo_sist) -> list[dict]:
     # ── Verificação inversa: Planilha do Sistema → Planilha de Lançamentos ──
     # Todo código com valor efetivo no sistema precisa estar previsto (e com
     # valor diferente de zero) na Planilha de Lançamentos para a mesma matrícula.
+    # Só gera alerta para códigos que existem em algum título (cabeçalho) da
+    # Planilha de Lançamentos — eventos que a planilha nem rastreia não entram
+    # em "Ausentes nos Lançamentos".
     for mat, eventos in sistema.items():
         nome_func = nomes.get(mat) or nomes_sistema.get(mat, "")
 
@@ -309,11 +312,14 @@ def executar_comparacao(arquivo_lanc, arquivo_sist) -> list[dict]:
             if (mat, cod) in processados:
                 continue
 
+            if cod not in codigos_no_cabecalho:
+                continue  # evento não está previsto em nenhum título da Planilha de Lançamentos
+
             ref, prov, desc = ev["ref"], ev["prov"], ev["desc"]
             if ref == 0.0 and prov == 0.0 and desc == 0.0:
                 continue  # sem valor efetivo no sistema: não gera alerta
 
-            if mat in lanc_por_mat and cod in codigos_no_cabecalho:
+            if mat in lanc_por_mat:
                 obs = (
                     "Evento existente na Planilha do Sistema, mas sem valor "
                     "informado na Planilha de Lançamentos para esta matrícula."

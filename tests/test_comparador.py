@@ -57,24 +57,34 @@ def _csv(linhas) -> ArquivoFake:
 # Dataset combinado cobrindo os cenários 1, 2, 3, 5, 6, 7, 8 e 9 de uma vez.
 LANCAMENTOS = [
     ["Matricula", "Nome", "Salario Base (100)", "Hora Extra (101)",
-     "Comissao (105)", "Bonus X (102) + Bonus Y (103)", "Adicional Noturno (106)"],
-    [1, "FUNCIONARIO UM",   1000.00, 0,       0,      0,      0],
-    [2, "FUNCIONARIO DOIS", 0,       500.00,  0,      0,      0],
-    [3, "FUNCIONARIO TRES", 0,       0,       300.00, 0,      0],
-    [6, "FUNCIONARIO SEIS", 0,       0,       0,      0,      0],
-    [8, "FUNCIONARIO OITO", 0,       0,       0,      700.00, 0],
+     "Comissao (105)", "Bonus X (102) + Bonus Y (103)", "Adicional Noturno (106)",
+     "Adicional Consolidado (250)"],
+    [1, "FUNCIONARIO UM",   1000.00, 0,       0,      0,      0,   0],
+    [2, "FUNCIONARIO DOIS", 0,       500.00,  0,      0,      0,   0],
+    [3, "FUNCIONARIO TRES", 0,       0,       300.00, 0,      0,   0],
+    [6, "FUNCIONARIO SEIS", 0,       0,       0,      0,      0,   0],
+    [8, "FUNCIONARIO OITO", 0,       0,       0,      700.00, 0,   0],
 ]
 
 SISTEMA = [
     ["Matricula", "Nome Evento", "Cod Evento", "Referencia", "Valor Provento", "Valor Desconto"],
-    [1, "Salario Base",         100, 1000.00, 0,      0],
-    [2, "Hora Extra",           101, 0,       450.00, 0],
-    [6, "Adicional Noturno",    106, 200.00,  0,      0],
-    [6, "Zerado Total",         107, 0,       0,      0],
-    [8, "Bonus X",              102, 300.00,  0,      0],
-    [8, "Bonus Y",              103, 400.00,  0,      0],
-    [9, "Adicional Especial",   200, 100.00,  0,      0],
-    [9, "Adicional Especial",   200, 150.00,  0,      0],
+    [1, "Salario Base",           100, 1000.00, 0,      0],
+    [2, "Hora Extra",             101, 0,       450.00, 0],
+    [6, "Adicional Noturno",      106, 200.00,  0,      0],
+    [6, "Zerado Total",           107, 0,       0,      0],
+    [8, "Bonus X",                102, 300.00,  0,      0],
+    [8, "Bonus Y",                103, 400.00,  0,      0],
+    # Código 200 não existe em nenhum título da Planilha de Lançamentos:
+    # não deve gerar alerta de ausência (cenário 4/5).
+    [9, "Adicional Especial",     200, 100.00,  0,      0],
+    [9, "Adicional Especial",     200, 150.00,  0,      0],
+    # Código 250 existe no título "Adicional Consolidado (250)" e aparece
+    # duas vezes no sistema: deve consolidar em um único resultado (cenário 9).
+    [10, "Adicional Consolidado", 250, 100.00,  0,      0],
+    [10, "Adicional Consolidado", 250, 150.00,  0,      0],
+    # Matrícula 1 existe na Planilha de Lançamentos, mas este evento (999) não
+    # está em nenhum título dela: também não deve gerar alerta de ausência.
+    [1, "Bonus Fora do Padrao",   999, 0,       80.00,  0],
 ]
 
 
@@ -100,13 +110,15 @@ class TestVerificacaoBidirecional(unittest.TestCase):
         r = self.por_chave[(3, "105")]
         self.assertEqual(r["Status"], "NAO_ENCONTRADO")
 
-    # 4/5. Matrícula somente no sistema -> alerta para evento válido (código repetido somado)
-    def test_cenario4_e_5_matricula_somente_no_sistema(self):
-        r = self.por_chave[(9, "200")]
-        self.assertEqual(r["Status"], "AUSENTE_NOS_LANCAMENTOS")
-        self.assertEqual(r["Funcionário"], "")  # nome não deve ser inventado
-        self.assertAlmostEqual(r["Referência Sistema"], 250.00)  # soma dos dois lançamentos do sistema (cenário 9)
-        self.assertIn("ausente", r["Observação"].lower())
+    # 4/5. Matrícula somente no sistema, mas com código que não existe em
+    # nenhum título da Planilha de Lançamentos -> não gera alerta de ausência
+    def test_cenario4_e_5_matricula_somente_no_sistema_sem_titulo_correspondente(self):
+        self.assertNotIn((9, "200"), self.por_chave)
+
+    # Mesma regra vale mesmo quando a matrícula existe na Planilha de
+    # Lançamentos: o código do evento é que precisa estar em algum título.
+    def test_codigo_sem_titulo_nao_gera_alerta_mesmo_com_matricula_existente(self):
+        self.assertNotIn((1, "999"), self.por_chave)
 
     # 6. Coluna existe no cabeçalho, mas funcionário está zerado
     def test_cenario6_coluna_zerada_no_lancamento(self):
@@ -130,11 +142,14 @@ class TestVerificacaoBidirecional(unittest.TestCase):
 
     # 9. Código repetido no sistema -> soma consolidada em um único resultado
     def test_cenario9_codigo_repetido_consolidado(self):
-        ocorrencias = [r for r in self.resultados if r["Matrícula"] == 9 and r["Código(s) Evento"] == "200"]
+        ocorrencias = [r for r in self.resultados if r["Matrícula"] == 10 and r["Código(s) Evento"] == "250"]
         self.assertEqual(len(ocorrencias), 1)
+        self.assertAlmostEqual(ocorrencias[0]["Referência Sistema"], 250.00)
 
     def test_total_de_linhas_sem_duplicidade(self):
         # 4 linhas do sentido lançamentos->sistema + 2 da verificação inversa
+        # (mat 6/cod 106 e mat 10/cod 250; mat 9/cod 200 fica de fora por não
+        # ter título correspondente na Planilha de Lançamentos)
         self.assertEqual(len(self.resultados), 6)
 
 
@@ -167,8 +182,8 @@ class TestNomeFuncionarioViaSistema(unittest.TestCase):
     desde que o Sistema tenha uma coluna reconhecível de nome de funcionário."""
 
     LANC = [
-        ["Matricula", "Nome", "Salario Base (100)"],
-        [1, "FUNCIONARIO UM", 1000.00],
+        ["Matricula", "Nome", "Salario Base (100)", "Comissao Especial (300)"],
+        [1, "FUNCIONARIO UM", 1000.00, 0],
     ]
     SIST = [
         ["Matricula", "Funcionario", "Nome Evento", "Cod Evento",
