@@ -49,12 +49,12 @@ def obter_salario_epoca(df_hist, mes_evt, ano_evt):
     df_temp = df_temp.dropna(subset=['Data de reajuste']).sort_values(by='Data de reajuste', ascending=True)
     
     if df_temp.empty: return None
-    salario_vigente = float(df_temp.iloc[0]['Salário'])
-    
+    salario_vigente = moeda_para_float(df_temp.iloc[0]['Salário'])
+
     for _, row in df_temp.iterrows():
         data_reajuste = row['Data de reajuste']
         if (ano_evt > data_reajuste.year) or (ano_evt == data_reajuste.year and mes_evt >= data_reajuste.month):
-            salario_vigente = float(row['Salário novo'])
+            salario_vigente = moeda_para_float(row['Salário novo'])
         else:
             break
     return salario_vigente
