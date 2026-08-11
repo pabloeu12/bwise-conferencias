@@ -12,7 +12,7 @@ from openpyxl.utils import get_column_letter
 
 # Importando as funções globais e constantes do core
 from core.utils import (
-    moeda_para_float,
+    moeda_para_float, ler_csv_com_fallback,
     COR_VERDE, COR_VERMELHO, COR_CABECALHO, COR_RESUMO,
     FONTE_CAB, FONTE_BOLD, FONTE_NORMAL, BORDA
 )
@@ -39,7 +39,7 @@ def reposicionar(arquivo):
 def ler_planilha(arquivo, header=None) -> pd.DataFrame:
     reposicionar(arquivo)
     if nome_arquivo(arquivo).endswith(".csv"):
-        return pd.read_csv(arquivo, header=header, sep=None, engine="python")
+        return ler_csv_com_fallback(arquivo, header=header, sep=None, engine="python")
     return pd.read_excel(arquivo, header=header)
 
 def verificar_optante(val) -> bool:

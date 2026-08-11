@@ -22,6 +22,7 @@ from core.utils import (
     FONTE_BOLD,
     FONTE_CAB,
     FONTE_NORMAL,
+    ler_csv_com_fallback,
     limpar_matricula,
     moeda_para_float,
 )
@@ -86,7 +87,7 @@ def carregar_arquivo(arquivo, skiprows=0, header="infer") -> pd.DataFrame:
     _reposicionar(arquivo)
     nome = _nome_arquivo(arquivo)
     if nome.endswith(".csv"):
-        return pd.read_csv(arquivo, skiprows=skiprows, header=header, sep=None, engine="python")
+        return ler_csv_com_fallback(arquivo, skiprows=skiprows, header=header, sep=None, engine="python")
     return pd.read_excel(arquivo, skiprows=skiprows, header=header)
 
 

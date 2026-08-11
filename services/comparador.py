@@ -14,7 +14,7 @@ from openpyxl.utils import get_column_letter
 
 # Importando as funções globais e constantes do core
 from core.utils import (
-    moeda_para_float, limpar_str,
+    moeda_para_float, limpar_str, ler_csv_com_fallback,
     COR_VERDE, COR_VERMELHO, COR_AMARELO, COR_CABECALHO, COR_RESUMO,
     FONTE_CAB, FONTE_BOLD, FONTE_NORMAL, BORDA
 )
@@ -55,7 +55,7 @@ def _carregar_matriz(arquivo) -> list[tuple]:
     nome = _nome_arquivo(arquivo)
 
     if nome.endswith(".csv"):
-        df = pd.read_csv(arquivo, header=None, sep=None, engine="python", dtype=object)
+        df = ler_csv_com_fallback(arquivo, header=None, sep=None, engine="python", dtype=object)
         df = df.where(pd.notnull(df), None)
         return [tuple(linha) for linha in df.itertuples(index=False, name=None)]
 

@@ -97,3 +97,17 @@ def formatar_moeda_br(valor: float) -> str:
     Exemplo: 1234.5 → "R$ 1.234,50"
     """
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def ler_csv_com_fallback(arquivo, **kwargs) -> pd.DataFrame:
+    """
+    Lê CSV tentando UTF-8 primeiro. Vários sistemas de RH/folha exportam
+    em Windows-1252/Latin-1 (acentos em nomes e cargos), o que quebra o
+    parser padrão do pandas com UnicodeDecodeError — cai para latin1
+    nesse caso, que aceita qualquer byte sem erro.
+    """
+    try:
+        return pd.read_csv(arquivo, encoding="utf-8-sig", **kwargs)
+    except UnicodeDecodeError:
+        arquivo.seek(0)
+        return pd.read_csv(arquivo, encoding="latin1", **kwargs)

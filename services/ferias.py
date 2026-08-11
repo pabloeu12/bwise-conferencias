@@ -10,7 +10,7 @@ import pandas as pd
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 
-from core.utils import moeda_para_float
+from core.utils import moeda_para_float, ler_csv_com_fallback
 
 EVENTOS_MEDIAS = [158, 115, 161, 117, 120, 619, 575, 642, 644, 645, 643, 153, 465, 700, 699, 460]
 
@@ -37,7 +37,7 @@ def ler_tabela(arquivo, **kwargs) -> pd.DataFrame:
     reposicionar(arquivo)
     nome = nome_arquivo(arquivo)
     if nome.endswith(".csv"):
-        return pd.read_csv(arquivo, sep=None, engine="python", **kwargs)
+        return ler_csv_com_fallback(arquivo, sep=None, engine="python", **kwargs)
     if nome.endswith(".xls"):
         return pd.read_excel(arquivo, engine="xlrd", **kwargs)
     return pd.read_excel(arquivo, engine="openpyxl", **kwargs)
