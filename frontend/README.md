@@ -3,8 +3,7 @@
 Interface web da plataforma de conferência de folha de pagamento. Consome o
 backend FastAPI que está em `../app.py` (raiz do repositório).
 
-Ver o `README.md` da raiz do repositório para o mapa completo do projeto
-(inclusive a versão Streamlit que também existe em paralelo).
+Ver o `README.md` da raiz do repositório para o mapa completo do projeto.
 
 ## Rodando localmente
 

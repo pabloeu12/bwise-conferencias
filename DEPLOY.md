@@ -5,8 +5,6 @@ Este projeto tem duas partes que precisam ser hospedadas separadamente, as duas 
 - **Backend** (`app.py` + `services/`) → Python/FastAPI → hospedar no **Render**.
 - **Frontend** (`frontend/`) → Next.js → hospedar no **Vercel**.
 
-O Streamlit (`Inicio.py` + `pages/`) continua existindo e não precisa ser hospedado de novo — pode manter como está hoje, ou aposentar depois que a versão Next.js estiver validada.
-
 ## 1. Backend no Render
 
 1. Acesse [render.com](https://render.com) e crie uma conta gratuita (não pede cartão de crédito).

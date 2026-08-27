@@ -83,7 +83,7 @@ def _reposicionar(arquivo):
 
 
 def carregar_arquivo(arquivo, skiprows=0, header="infer") -> pd.DataFrame:
-    """Carrega CSV/XLS/XLSX sem amarrar a lógica ao Streamlit."""
+    """Carrega CSV/XLS/XLSX independente da origem do upload (FastAPI)."""
     _reposicionar(arquivo)
     nome = _nome_arquivo(arquivo)
     if nome.endswith(".csv"):

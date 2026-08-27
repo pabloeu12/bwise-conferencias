@@ -13,87 +13,56 @@ conferência de recibo de férias e conferência de empréstimos consignados.
 | 3 | [Conferência de Férias](#3-conferência-de-férias) | Lê o PDF do recibo de férias, refaz o cálculo de férias, abono e médias de variáveis com reajustes salariais históricos. |
 | 4 | [Conferência de Consignados](#4-conferência-de-consignados) | Cruza Emprega Brasil x folha e valida o limite legal de desconto de 35% do salário. |
 
-## ⚠️ Este repositório tem DUAS interfaces (front-ends) para o mesmo motor
+## Stack
 
-O sistema nasceu em **Streamlit** e foi depois "recortado" em duas camadas:
-a lógica de cálculo (pasta `services/`, pura em Python) e a tela. A partir
-daí uma segunda interface, em **Next.js + FastAPI**, foi construída em cima
-exatamente da mesma lógica — nenhuma regra de negócio foi duplicada. Hoje as
-duas interfaces convivem lado a lado, deliberadamente:
+**Next.js 16 + React 19 + Tailwind 4** no frontend, **FastAPI** no backend
+("Motor Bwise"). O frontend faz upload dos arquivos via `multipart/form-data`
+para a API, que devolve os resultados em JSON (renderizados em tabela) e, sob
+demanda, gera o relatório em Excel (`.xlsx`) para download.
 
-| | Streamlit (original) | Next.js + FastAPI (atual) |
-|---|---|---|
-| **Pastas** | `Inicio.py`, `pages/`, `core/` | `frontend/` (tela) + `app.py` (API) |
-| **Hospedagem** | não hospedado publicamente hoje | Vercel (tela) + Render (API) |
-| **Rodar local** | `streamlit run Inicio.py` | `npm run dev` (backend + frontend juntos) |
-| **Identidade visual** | grafite + verde Bwise, tema claro | mesma paleta, layout "SaaS" com sidebar fixa |
-| **Recursos extras** | tem gráficos (Altair) no módulo de Adiantamento | sem gráficos; ganhou filtro por coluna estilo Excel e reordenação de colunas por arrastar, na tabela de Rubricas |
-| **Situação** | mantido em paralelo, funcionando | versão em uso ativo pelo cliente |
-
-Ambas chamam **as mesmas quatro funções** de `services/` — `executar_comparacao`,
-`executar_conferencia_adiantamento` (ou seu wrapper `processar_dados`),
-`processar_auditoria_ferias` e `executar_conferencia_consignados` — então o
-resultado de uma conferência é idêntico nas duas telas. Isso é intencional e
-comentado explicitamente no código (ver `pages/3_Conferencia_de_Ferias.py`).
+> Este projeto já teve uma versão em Streamlit rodando em paralelo à atual.
+> Ela foi descontinuada e removida do repositório — a plataforma hoje tem
+> **uma única interface**, em Next.js + FastAPI. Toda a lógica de negócio que
+> antes era compartilhada entre as duas telas permanece intacta em
+> `services/`, agora consumida só pelo backend FastAPI.
 
 ## Arquitetura
 
 ```
-                         ┌─────────────────────────┐
-                         │   services/*.py          │   ← lógica de negócio, 100%
-                         │  (comparador, adianta-   │     compartilhada, sem
-                         │  mento, ferias,           │     nenhuma dependência de
-                         │  consignados)             │     Streamlit ou FastAPI
-                         └───────────┬──────────────┘
-                                     │
-              ┌──────────────────────┴───────────────────────┐
-              │                                                │
-   ┌──────────▼───────────┐                       ┌────────────▼─────────────┐
-   │  Streamlit            │                       │  FastAPI (app.py)         │
-   │  Inicio.py + pages/   │                       │  "Motor Bwise"            │
-   │  core/ui.py (CSS/UI)  │                       │  4 rotas POST + 3 rotas    │
-   │  core/utils.py        │                       │  de exportação Excel       │
-   │  (chama services      │                       │  (upload multipart →       │
-   │   direto, em processo)│                       │   JSON / arquivo .xlsx)    │
-   └───────────────────────┘                       └────────────┬──────────────┘
-                                                                  │ HTTP/JSON
-                                                     ┌────────────▼──────────────┐
-                                                     │  Next.js (frontend/)       │
-                                                     │  fetch() para cada rota    │
-                                                     │  DataTable, MetricsRow,    │
-                                                     │  PassoAPasso, Sidebar,     │
-                                                     │  Topbar                    │
-                                                     └────────────────────────────┘
+┌───────────────────────────────┐
+│  services/*.py                 │  ← lógica de negócio, sem nenhuma
+│  (comparador, adiantamento,    │    dependência de framework web
+│  ferias, consignados)          │    (só pandas / openpyxl / pdfplumber)
+└───────────────┬─────────────── ┘
+                │
+┌───────────────▼────────────────┐         HTTP / JSON          ┌──────────────────────────────┐
+│  FastAPI (app.py)               │ ◄────────────────────────►   │  Next.js (frontend/)          │
+│  "Motor Bwise"                  │   multipart (upload) /       │  fetch() para cada rota        │
+│  4 rotas POST de auditoria +    │   JSON (resultados) /        │  DataTable, MetricsRow,        │
+│  3 rotas de exportação Excel    │   blob (.xlsx)                │  PassoAPasso, Sidebar, Topbar  │
+└──────────────────────────────── ┘                               └──────────────────────────────┘
 ```
 
 `core/utils.py` concentra as funções de limpeza de dados usadas pelos quatro
 serviços (conversão de moeda BR, normalização de matrícula, leitura de CSV
-com fallback de encoding, constantes de cor/fonte do Excel). Antes dessa
-consolidação, cada módulo tinha sua própria cópia dessas funções — hoje há
-uma fonte única.
+com fallback de encoding, constantes de cor/fonte do Excel) — fonte única
+para regras de parsing repetidas nos quatro módulos.
 
 ## Estrutura do projeto
 
 ```
 bwise-conferencias/
-├── Inicio.py                        # tela inicial do Streamlit (dashboard com os 4 cards)
-├── pages/                           # 1 arquivo por módulo, nomeados com prefixo numérico
-│   ├── 1_Auditoria_de_Rubricas.py
-│   ├── 2_Adiantamento_Salarial.py
-│   ├── 3_Conferencia_de_Ferias.py
-│   └── 4_Conferencia_de_Consignados.py
+├── app.py                           # backend FastAPI ("Motor Bwise") — ponto de entrada da API
 ├── core/
-│   ├── ui.py                        # design system: CSS injetado, cabeçalho, sidebar
-│   └── utils.py                     # limpeza/parsing de dados compartilhado
-├── assets/                          # logos (Bwise e Maçaneiro) usadas pelo Streamlit
-├── app.py                           # backend FastAPI ("Motor Bwise") usado pelo frontend/
-├── services/                        # lógica de cálculo — USADA PELAS DUAS INTERFACES
+│   ├── __init__.py
+│   └── utils.py                     # limpeza/parsing de dados compartilhado entre os serviços
+├── services/                        # lógica de cálculo de cada módulo
 │   ├── comparador.py                # módulo 1 — Rubricas
 │   ├── adiantamento.py              # módulo 2 — Adiantamento Salarial
 │   ├── ferias.py                    # módulo 3 — Férias (leitura de PDF)
 │   └── consignados.py               # módulo 4 — Consignados
 ├── tests/
-│   └── test_comparador.py           # suíte unittest do módulo de Rubricas (11 cenários)
+│   └── test_comparador.py           # suíte unittest do módulo de Rubricas (21 casos)
 ├── frontend/                        # site em Next.js 16 / React 19 / Tailwind 4 (Vercel)
 │   ├── app/
 │   │   ├── page.tsx                 # painel inicial
@@ -111,20 +80,11 @@ bwise-conferencias/
 │       ├── api.ts                   # URL base do backend (NEXT_PUBLIC_API_URL)
 │       └── types.ts                 # tipos TS espelhando o retorno de services/
 ├── package.json                     # raiz: script "dev" sobe backend+frontend juntos (concurrently)
-├── requirements.txt                 # dependências Python (Streamlit + FastAPI, uma lista só)
+├── requirements.txt                 # dependências Python (FastAPI + libs de leitura/Excel/PDF)
 └── DEPLOY.md                        # passo a passo de publicação gratuita (Render + Vercel)
 ```
 
 ## Como rodar localmente
-
-### Opção A — Streamlit (versão original)
-
-```bash
-pip install -r requirements.txt
-streamlit run Inicio.py
-```
-
-### Opção B — Next.js + FastAPI (versão atual)
 
 ```bash
 # Terminal 1 — backend
@@ -150,7 +110,7 @@ publicar de graça em Render (backend) + Vercel (frontend).
 python -m unittest tests.test_comparador -v
 ```
 
-Cobre 11 cenários do módulo de Rubricas: comparação direta, divergência,
+Cobre 21 cenários do módulo de Rubricas: comparação direta, divergência,
 verificação inversa (sistema → lançamentos) nos seus vários casos de
 não-alerta, colunas com múltiplos códigos somados, códigos repetidos
 consolidados, leitura via XLSX e via CSV, e as regras de preenchimento do
@@ -199,14 +159,12 @@ do Sistema — "Lista de Eventos de Recibos de Pagamento" (.xlsx/.csv).
 - Saída: tabela com 11 colunas + relatório Excel de duas abas (`CONFERÊNCIA`
   colorida por status + `RESUMO` com totais e percentual de acerto).
 
-**Particularidades da tela:**
-- Streamlit: filtros por Status, Funcionário (nome ou matrícula) e Evento
-  (multiselect).
-- Next.js: além dos mesmos filtros, tem um modal dedicado para escolher
-  quais eventos "Ausentes nos Lançamentos" aparecem na tabela (evita que uma
-  lista enorme de ausências polua a visão), e a `DataTable` genérica
-  suporta **filtro por coluna estilo Excel** (dropdown com contagem por
-  valor) e **reordenar colunas arrastando o cabeçalho**.
+**Particularidades da tela:** além dos filtros por Status, Funcionário (nome
+ou matrícula) e Evento, tem um modal dedicado para escolher quais eventos
+"Ausentes nos Lançamentos" aparecem na tabela (evita que uma lista enorme de
+ausências polua a visão). A `DataTable` genérica ainda suporta **filtro por
+coluna estilo Excel** (dropdown com contagem por valor) e **reordenar
+colunas arrastando o cabeçalho**.
 
 ### 2. Adiantamento Salarial
 
@@ -254,11 +212,6 @@ Aquisitivos e Concessivos de Férias.
 - Saída: Excel de duas abas (`CONFERÊNCIA` + `RESUMO`), com totais globais
   pagos em cada mês e a diferença líquida entre eles.
 
-**Particularidade só do Streamlit:** este é o único módulo com gráficos
-(Altair) — barras e pizza comparando o total pago mês a mês, e um gráfico de
-variação líquida colorido conforme o sinal (verde se aumentou, vermelho se
-caiu). A versão Next.js não reproduz esses gráficos, só os KPIs numéricos.
-
 ### 3. Conferência de Férias
 
 **Arquivos de entrada:** Recibo de Férias em **PDF** (documento oficial
@@ -295,7 +248,7 @@ Cargos e Salários.
   arredondamento bancário padrão do Python).
 - Não há geração de Excel neste módulo — o resultado é só exibido na tela
   (JSON estruturado com fórmula, valor calculado, valor do PDF e diferença
-  para cada evento verificado), tanto no Streamlit quanto no Next.js.
+  para cada evento verificado).
 
 ### 4. Conferência de Consignados
 
@@ -335,11 +288,11 @@ de Eventos de Recibos de Pagamento.
 
 ## Particularidades e pontos de atenção gerais
 
-- **Uma única fonte de verdade para regras de negócio.** Nenhuma tela
-  reimplementa cálculo — `Inicio.py`/`pages/*.py` (Streamlit) e
-  `app.py`/`frontend/*` (Next.js) só formatam e exibem o que `services/*.py`
-  devolve. Qualquer correção de regra de negócio deve ser feita uma única
-  vez em `services/`.
+- **`services/` é a única fonte de verdade para regras de negócio.**
+  `app.py` (rotas FastAPI) e `frontend/app/*` (telas Next.js) só enviam
+  arquivos, recebem o JSON e formatam a exibição — nenhum cálculo é
+  duplicado na API nem no frontend. Qualquer correção de regra de negócio
+  deve ser feita uma única vez em `services/`.
 - **Tolerâncias monetárias:** a maioria das comparações usa tolerância de
   R$ 0,05 (rubricas, consignados) ou R$ 0,02 (adiantamento) para absorver
   arredondamento de centavos — não são bugs, são limiares deliberados.
@@ -358,20 +311,18 @@ de Eventos de Recibos de Pagamento.
   de Rubricas, em contraste, é o mais resiliente: identifica colunas por
   nome de cabeçalho (com tabela de aliases) em vez de posição fixa.
 - **Sem persistência/banco de dados.** Todo processamento é feito em memória
-  a partir do upload; nada é salvo em disco ou banco entre requisições. No
-  Streamlit, os resultados ficam em `st.session_state` (sobrevivem a
-  reruns da mesma sessão de navegador); no Next.js, ficam em estado de
-  componente React (perdidos ao recarregar a página).
+  a partir do upload; nada é salvo em disco ou banco entre requisições. Os
+  resultados ficam em estado de componente React no frontend — perdidos ao
+  recarregar a página.
 - **CORS controlado por variável de ambiente** (`FRONTEND_ORIGINS` em
   `app.py`): em desenvolvimento local não precisa configurar nada
   (`localhost:3000` já é liberado); em produção, é obrigatório apontar para
   a URL pública do Vercel, senão o navegador bloqueia as chamadas.
 - **Exportação Excel a partir do que está na tela, não do resultado bruto:**
-  as rotas `/excel` do backend (e os botões de download do Streamlit)
-  recebem o conjunto de resultados **já filtrado** pela interface, e
-  recalculam os totais do resumo em cima desse subconjunto — assim o
-  arquivo baixado sempre reflete exatamente o que o usuário está vendo na
-  tela, não o total original da conferência completa.
+  as rotas `/excel` do backend recebem o conjunto de resultados **já
+  filtrado** pela interface, e recalculam os totais do resumo em cima desse
+  subconjunto — assim o arquivo baixado sempre reflete exatamente o que o
+  usuário está vendo na tela, não o total original da conferência completa.
 - **Ano fixo de fallback (`2026`) no módulo de Adiantamento:** se a coluna
   `Ano` da planilha de eventos estiver ausente ou vazia, o sistema assume o
   ano 2026 como padrão — vale revisar esse valor manualmente se o sistema

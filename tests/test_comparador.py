@@ -32,7 +32,7 @@ from services.comparador import (
 
 
 class ArquivoFake(BytesIO):
-    """Simula um arquivo de upload do Streamlit (precisa de atributo .name)."""
+    """Simula um arquivo de upload (precisa de atributo .name)."""
 
     def __init__(self, data: bytes, nome: str):
         super().__init__(data)

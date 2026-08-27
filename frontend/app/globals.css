@@ -10,7 +10,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
 
-  /* Paleta oficial Bwise (mesma usada no core/ui.py do app Streamlit) */
+  /* Paleta oficial Bwise */
   --color-bwise-grafite: #232838;
   --color-bwise-grafite-claro: #3A4059;
   --color-bwise-grafite-hover: #12151d;
