@@ -274,7 +274,7 @@ de Eventos de Recibos de Pagamento.
   subtraídos, pois não entram na margem consignável).
   `Limite de Desconto (35%) = Base × 0,35`.
 - O valor "oficial" descontado em folha é a soma dos eventos de empréstimo
-  (lista fixa de 12 códigos em `CODIGOS_EMPRESTIMO`) na Lista de Eventos.
+  (lista fixa de 20 códigos em `CODIGOS_EMPRESTIMO`) na Lista de Eventos.
   O sistema calcula duas divergências: **Emprega Brasil x Lista de Eventos**
   (o valor deveria ser o mesmo nos dois relatórios) e **Limite x Lista de
   Eventos** (o valor descontado não pode ultrapassar os 35% da base).
